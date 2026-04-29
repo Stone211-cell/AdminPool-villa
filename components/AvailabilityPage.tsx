@@ -82,7 +82,10 @@ function CalGrid({ month, sel, heatmap, today, onSelect }: {
       {cells.map((day, i) => {
         if (!day) return <div key={`e${i}`} />;
         const date = new Date(y, m, day);
-        const key = date.toISOString().slice(0, 10);
+        const yKey = date.getFullYear();
+        const mKey = String(date.getMonth() + 1).padStart(2, "0");
+        const dKey = String(date.getDate()).padStart(2, "0");
+        const key = `${yKey}-${mKey}-${dKey}`;
         const isSel = sel?.toDateString() === date.toDateString();
         const isPast = date < today;
         const isToday = date.toDateString() === today.toDateString();
@@ -162,6 +165,13 @@ export function AvailabilityPage() {
   });
   const [filtersOpen, setFiltersOpen] = React.useState(true);
   const [mobileSheet, setMobileSheet] = React.useState<"calendar" | "filter" | null>(null);
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "repair" | "booked" | "waiting" | "free" | "hotpro" | "holiday">("all");
+  const exactMatchId = React.useMemo(() => {
+    if (!search) return null;
+    const match = search.match(/(?:dv-?)?(\d+)/i);
+    if (match && match[1].length >= 1) return match[1];
+    return null;
+  }, [search]);
   const today = React.useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
 
   React.useEffect(() => {
@@ -177,13 +187,17 @@ export function AvailabilityPage() {
 
   React.useEffect(() => {
     const y = month.getFullYear(), m2 = month.getMonth() + 1;
-    axios.get(`/api/availability?year=${y}&month=${m2}`).then(r => r.data)
-      .then(d => { if (d.heatmap) { setHeatmap(d.heatmap); if (d.totalHouses) setTotal(d.totalHouses); } }).catch(() => { });
-  }, [month]);
+    const url = `/api/availability?year=${y}&month=${m2}` + (exactMatchId ? `&houseId=${exactMatchId}` : "");
+    axios.get(url).then(r => r.data)
+      .then(d => { if (d.heatmap) { setHeatmap(d.heatmap); if (d.totalHouses && !exactMatchId) setTotal(d.totalHouses); } }).catch(() => { });
+  }, [month, exactMatchId]);
 
   const handleDate = async (date: Date) => {
     setSel(date); setLoading(true);
-    const key = date.toISOString().slice(0, 10);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const key = `${y}-${m}-${d}`;
     const res = await axios.get(`/api/availability?date=${key}`).then(r => r.data).catch(() => null);
     if (res?.houses) { setHouses(res.houses); setDbMode(res.dbMode ?? false); }
     setLoading(false);
@@ -191,13 +205,18 @@ export function AvailabilityPage() {
 
   const yn = (h: any, k: string) => h[k] === true || h[k] === "y";
   const activeCount = [filters.minBed, filters.maxPrice, filters.minPeople, filters.swim, filters.pet, filters.karaoke, filters.jacuzzi, filters.wifi, filters.grill, filters.snooker, filters.discotech, filters.slider, filters.billard].filter(Boolean).length;
-  const reset = () => { setSearch(""); setFilters({ minBed: 0, maxPrice: 0, minPeople: 0, swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
+  const reset = () => { setSearch(""); setStatusFilter("all"); setFilters({ minBed: 0, maxPrice: 0, minPeople: 0, swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
 
   const filtered = React.useMemo(() => {
     return [...houses].filter(h => {
       const ha = h as any;
       const id = `DV-${ha.hId || ha.h_id}`.toLowerCase();
       const zone = (ha.hFarsea || ha.h_farsea || "").toLowerCase();
+      if (sel) {
+        const ds = ha.dayStatus || "free";
+        if (statusFilter !== "all" && ds !== statusFilter) return false;
+        if (statusFilter === "all" && ["booked", "waiting", "repair"].includes(ds)) return false;
+      }
       if (search && !id.includes(search.toLowerCase()) && !zone.includes(search.toLowerCase())) return false;
       const bed = parseInt(ha.hBedroom ?? ha.h_bedroom ?? "0");
       if (filters.minBed && bed < filters.minBed) return false;
@@ -326,6 +345,14 @@ export function AvailabilityPage() {
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหา DV-XXXX, โซน..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-[#6b6b78] focus:outline-none focus:border-emerald-500/50 transition-colors"/>
             </div>
+            {sel && <div className="mb-3">
+              <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">สถานะบ้าน</p>
+              <div className="grid grid-cols-2 gap-1">
+                {(Object.entries({ "all": "ทั้งหมด", "repair": "ปิดซ่อม", "booked": "ติดจอง", "waiting": "รอโอน", "free": "ว่าง", "hotpro": "โปรโมชั่น 🔥", "holiday": "วันหยุด" }) as [typeof statusFilter, string][]).map(([v, l]) => (
+                  <button key={v} onClick={() => setStatusFilter(v)} className={btnCls(statusFilter === v)}>{l}</button>
+                ))}
+              </div>
+            </div>}
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">เรียงลำดับ</p>
               <div className="grid grid-cols-2 gap-1">
@@ -424,6 +451,14 @@ export function AvailabilityPage() {
               </div>
 
               {filtersOpen && <>
+                {sel && <div>
+                  <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">สถานะบ้าน</p>
+                  <div className="grid grid-cols-2 gap-1 mb-2">
+                    {(Object.entries({ "all": "ทั้งหมด", "repair": "ปิดซ่อม", "booked": "ติดจอง", "waiting": "รอโอน", "free": "ว่าง", "hotpro": "โปรโมชั่น 🔥", "holiday": "วันหยุด" }) as [typeof statusFilter, string][]).map(([v, l]) => (
+                      <button key={v} onClick={() => setStatusFilter(v)} className={btnCls(statusFilter === v)}>{l}</button>
+                    ))}
+                  </div>
+                </div>}
                 <div>
                   <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">เรียงลำดับ</p>
                   <div className="grid grid-cols-2 gap-1">

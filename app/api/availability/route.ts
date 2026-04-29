@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const date  = searchParams.get("date");
   const year  = searchParams.get("year");
   const month = searchParams.get("month");
+  const houseId = searchParams.get("houseId");
 
   try {
     const totalHouses = await prisma.house.count();
@@ -39,11 +40,11 @@ export async function GET(req: NextRequest) {
       // ดึง bookings และ holidays ทั้งหมดในเดือน
       const [bookings, holidays] = await Promise.all([
         prisma.booking.findMany({
-          where: { checkIn: { lt: monthEnd }, checkOut: { gt: monthStart } },
+          where: { checkIn: { lt: monthEnd }, checkOut: { gt: monthStart }, ...(houseId ? { houseId } : {}) },
           select: { houseId: true, checkIn: true, checkOut: true, bookType: true },
         }),
         prisma.holiday.findMany({
-          where: { start: { lte: monthEnd }, end: { gte: monthStart } },
+          where: { start: { lte: monthEnd }, end: { gte: monthStart }, ...(houseId ? { houseId } : {}) },
           select: { houseId: true, start: true, end: true, type: true },
         }),
       ]);
@@ -106,24 +107,34 @@ export async function GET(req: NextRequest) {
         }),
       ]);
 
-      // บ้านที่ "ไม่ว่าง" = booked + waiting + repair
-      const unavailableIds = new Set(
-        bookedRows
-          .filter(b => ["deville", "owner", "waiting", "repair"].includes(b.bookType))
-          .map(b => b.houseId)
-      );
-
       const houses = await prisma.house.findMany({
-        where: unavailableIds.size > 0 ? { hId: { notIn: [...unavailableIds] } } : {},
         include: { detail: true },
         orderBy: { price: "asc" },
       });
 
+      // Map statuses
+      const houseStatusMap = new Map<string, DayStatus>();
+      for (const h of houses) houseStatusMap.set(h.hId, "free");
+
+      for (const h of holidayRows) {
+        if (h.type === "hotpro") houseStatusMap.set(h.houseId, "hotpro");
+        else houseStatusMap.set(h.houseId, "holiday");
+      }
+      for (const b of bookedRows) {
+        if (b.bookType === "waiting") houseStatusMap.set(b.houseId, "waiting");
+        else if (b.bookType === "repair") houseStatusMap.set(b.houseId, "repair");
+        else houseStatusMap.set(b.houseId, "booked"); // deville, owner
+      }
+
+      const housesWithStatus = houses.map(h => ({
+        ...h,
+        dayStatus: houseStatusMap.get(h.hId) || "free"
+      }));
+
       return NextResponse.json({
-        houses,
+        houses: housesWithStatus,
         dbMode: true,
         total: houses.length,
-        bookedCount: unavailableIds.size,
         date,
       });
     }
