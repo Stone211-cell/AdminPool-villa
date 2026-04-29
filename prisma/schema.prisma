@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ข้อมูลหลักของบ้านพูลวิลล่า
+model House {
+  id          String   @id @default(cuid())
+  hId         String   @unique @map("h_id")        // รหัสบ้าน เช่น "2866"
+  hZone       String   @default("pattaya") @map("h_zone")
+  hBedroom    Int      @map("h_bedroom")
+  hToilet     Int      @map("h_toilet")
+  hFarsea     String   @default("") @map("h_farsea")
+  price       Int
+  people      Int
+  imgName     String   @default("") @map("img_name")
+  swim        String   @default("chlorine")
+  wifi        Boolean  @default(false)
+  grill       Boolean  @default(false)
+  pet         Boolean  @default(false)
+  karaoke     Boolean  @default(false)
+  jacuzzi     Boolean  @default(false)
+  snooker     Boolean  @default(false)
+  discotech   Boolean  @default(false)
+  slider      Boolean  @default(false)
+  billard     Boolean  @default(false)
+  swimmingKid Boolean  @default(false) @map("swimming_kid")
+  bath        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // รายละเอียดเพิ่มเติม (จากหน้า detail)
+  detail      HouseDetail?
+  bookings    Booking[]
+  holidays    Holiday[]
+  basePrices  BasePrice[]
+
+  @@map("houses")
+}
+
+// รายละเอียดบ้าน (ดึงจากหน้า /houses/[id])
+model HouseDetail {
+  id              String   @id @default(cuid())
+  houseId         String   @unique @map("house_id")
+  checkin         String   @default("14:00") @map("h_time_checkin")
+  checkout        String   @default("12:00") @map("h_time_checkout")
+  extra           Int      @default(0)         // ค่าคนเสริม/คืน
+  insurance       Int      @default(0)         // ค่าประกันความเสียหาย
+  peopleMax       Int      @default(0) @map("people_max")
+  location        String   @default("")
+  sea             String   @default("")
+  parking         String   @default("") @map("h_parking")
+  kitchen         String   @default("") @map("h_kitchen_ware")
+  additionalCosts String   @default("") @map("h_additional_costs")
+  moreDetail      String   @default("") @map("h_moredetail")
+  bedroomDetail   String   @default("") @map("h_bedroom_detail")
+  alert           String   @default("") @map("h_alert")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  house House @relation(fields: [houseId], references: [hId])
+
+  @@map("house_details")
+}
+
+// การจอง (วันที่ถูกจอง/ปิด)
+model Booking {
+  id          String   @id @default(cuid())
+  houseId     String   @map("house_id")
+  checkIn     DateTime @map("book_checkin")
+  checkOut    DateTime @map("book_checkout")
+  bookType    String   @default("guest") @map("book_type") // guest | owner | repair
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  house House @relation(fields: [houseId], references: [hId])
+
+  @@map("bookings")
+}
+
+// วันหยุด/ราคาพิเศษ
+model Holiday {
+  id          String   @id @default(cuid())
+  houseId     String   @map("house_id")
+  start       DateTime
+  end         DateTime
+  type        String   @default("holiday") // holiday | hotpro
+  price       Int      @default(0)
+  people      Int      @default(0)
+  alert       String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  house House @relation(fields: [houseId], references: [hId])
+
+  @@map("holidays")
+}
+
+// ราคาตามวัน
+model BasePrice {
+  id       String @id @default(cuid())
+  houseId  String @unique @map("house_id")
+  priceSun Int    @default(0) @map("price_sun")
+  priceMon Int    @default(0) @map("price_mon")
+  priceTue Int    @default(0) @map("price_tue")
+  priceWed Int    @default(0) @map("price_wed")
+  priceThu Int    @default(0) @map("price_thu")
+  priceFri Int    @default(0) @map("price_fri")
+  priceSat Int    @default(0) @map("price_sat")
+
+  house House @relation(fields: [houseId], references: [hId])
+
+  @@map("base_prices")
+}
