@@ -103,15 +103,15 @@ function CalGrid({ month, sel, heatmap, today, onSelect }: {
           textCls = "text-[#3a3a3a] cursor-not-allowed";
         } else if (info) {
           const total = (info.booked || 0) + (info.waiting || 0) + (info.repair || 0);
-          if (info.repair > 0 && info.repair === total) {
-            // ปิดซ่อมทุกหลัง
+          if (info.repair > 0) {
+            // ปิดซ่อม
             bg = "bg-orange-500"; textCls = "text-white font-bold";
-          } else if (total > 0 && info.free === 0) {
-            // ติดจองทั้งหมด
-            bg = "bg-[#e8365d]"; textCls = "text-white font-bold";
-          } else if (info.booked > 0 || info.waiting > 0) {
-            // ติดจองบางส่วน — สีชมพูอ่อน
-            bg = "bg-[#f9a8c9]"; textCls = "text-[#c0164a] font-semibold";
+          } else if (info.booked > 0) {
+            // ติดจอง
+            bg = "bg-red-500"; textCls = "text-white font-bold";
+          } else if (info.waiting > 0) {
+            // รอโอน
+            bg = "bg-pink-500"; textCls = "text-white font-bold";
           } else if (info.hotpro > 0) {
             // โปรโมชั่น
             bg = "bg-orange-400/20 border border-orange-400/40"; textCls = "text-orange-300 font-semibold"; icon = "🔥";
@@ -158,7 +158,7 @@ export function AvailabilityPage() {
   const [dbMode, setDbMode] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [filters, setFilters] = React.useState({
-    minBed: 0, maxPrice: 0, minPeople: 0, swim: "" as "" | "salt" | "chlorine",
+    beds: [] as number[], maxPrice: 0, peoples: [] as number[], swim: "" as "" | "salt" | "chlorine",
     pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false,
     snooker: false, discotech: false, slider: false, billard: false,
     sort: "price_asc" as "price_asc" | "price_desc" | "bed_asc" | "bed_desc",
@@ -204,8 +204,8 @@ export function AvailabilityPage() {
   };
 
   const yn = (h: any, k: string) => h[k] === true || h[k] === "y";
-  const activeCount = [filters.minBed, filters.maxPrice, filters.minPeople, filters.swim, filters.pet, filters.karaoke, filters.jacuzzi, filters.wifi, filters.grill, filters.snooker, filters.discotech, filters.slider, filters.billard].filter(Boolean).length;
-  const reset = () => { setSearch(""); setStatusFilter("all"); setFilters({ minBed: 0, maxPrice: 0, minPeople: 0, swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
+  const activeCount = [filters.beds.length, filters.maxPrice, filters.peoples.length, filters.swim, filters.pet, filters.karaoke, filters.jacuzzi, filters.wifi, filters.grill, filters.snooker, filters.discotech, filters.slider, filters.billard].filter(Boolean).length;
+  const reset = () => { setSearch(""); setStatusFilter("all"); setFilters({ beds: [], maxPrice: 0, peoples: [], swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
 
   const filtered = React.useMemo(() => {
     return [...houses].filter(h => {
@@ -219,11 +219,17 @@ export function AvailabilityPage() {
       }
       if (search && !id.includes(search.toLowerCase()) && !zone.includes(search.toLowerCase())) return false;
       const bed = parseInt(ha.hBedroom ?? ha.h_bedroom ?? "0");
-      if (filters.minBed && bed < filters.minBed) return false;
+      if (filters.beds.length > 0) {
+        const match = filters.beds.some(n => n === 8 ? bed >= 8 : bed === n);
+        if (!match) return false;
+      }
       const price = parseInt(ha.price ?? "0");
       if (filters.maxPrice && price > filters.maxPrice) return false;
       const ppl = parseInt(ha.people ?? "0");
-      if (filters.minPeople && ppl < filters.minPeople) return false;
+      if (filters.peoples.length > 0) {
+        const minP = Math.min(...filters.peoples);
+        if (ppl < minP) return false;
+      }
       if (filters.swim && (ha.swim || "chlorine") !== filters.swim) return false;
       for (const k of ["pet", "karaoke", "jacuzzi", "wifi", "grill", "snooker", "discotech", "slider", "billard"] as const)
         if (filters[k] && !yn(ha, k)) return false;
@@ -270,17 +276,17 @@ export function AvailabilityPage() {
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${mobileSheet === "calendar" ? "text-emerald-400" : "text-[#6b6b78] hover:text-white"}`}>
             <span className="text-xl">📅</span>
             <span className="text-[10px] font-medium">ปฏิทิน</span>
-            {sel && <span className="text-[9px] text-emerald-400">{sel.toLocaleDateString("th-TH",{day:"numeric",month:"short"})}</span>}
+            {sel && <span className="text-[9px] text-emerald-400">{sel.toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</span>}
           </button>
-          <div className="w-px h-8 bg-white/10"/>
+          <div className="w-px h-8 bg-white/10" />
           <button onClick={() => setMobileSheet(s => s === "filter" ? null : "filter")}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${mobileSheet === "filter" ? "text-emerald-400" : "text-[#6b6b78] hover:text-white"}`}>
             <span className="text-xl">🔍</span>
             <span className="text-[10px] font-medium">ค้นหา / กรอง</span>
             {activeCount > 0 && <span className="text-[9px] bg-emerald-500/20 text-emerald-400 rounded-full px-1.5">{activeCount}</span>}
           </button>
-          <div className="w-px h-8 bg-white/10"/>
-          <button onClick={() => { if(sel){setSel(null); axios.get("/api/availability").then(r=>setHouses(r.data.houses||[]));} }}
+          <div className="w-px h-8 bg-white/10" />
+          <button onClick={() => { if (sel) { setSel(null); axios.get("/api/availability").then(r => setHouses(r.data.houses || [])); } }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-full transition-colors ${!sel ? "text-[#3a3a3a]" : "text-[#6b6b78] hover:text-red-400"}`}
             disabled={!sel}>
             <span className="text-xl">🏠</span>
@@ -302,7 +308,7 @@ export function AvailabilityPage() {
               <p className="text-2xl font-bold text-white">{total}</p>
             </div>
             <div className="rounded-xl border border-white/8 bg-[#111113] p-3 text-center">
-              <p className="text-xs text-[#6b6b78]">{sel ? `ว่าง ${sel.toLocaleDateString("th-TH",{day:"numeric",month:"short"})}` : "แสดงอยู่"}</p>
+              <p className="text-xs text-[#6b6b78]">{sel ? `ว่าง ${sel.toLocaleDateString("th-TH", { day: "numeric", month: "short" })}` : "แสดงอยู่"}</p>
               <p className="text-2xl font-bold text-emerald-400">{filtered.length}</p>
             </div>
           </div>
@@ -317,9 +323,9 @@ export function AvailabilityPage() {
               <button onClick={() => navM(1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/8 text-[#a1a1aa] hover:text-white transition-colors">›</button>
             </div>
             <CalGrid month={month} sel={sel} heatmap={heatmap} today={today}
-              onSelect={d => { handleDate(d); setMobileSheet(null); }}/>
+              onSelect={d => { handleDate(d); setMobileSheet(null); }} />
             <div className="mt-3 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-4 gap-y-2">
-              {([["bg-orange-500", "ปิดซ่อม"], ["bg-[#e8365d]", "ติดจอง"], ["bg-[#f9a8c9]", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
+              {([["bg-orange-500", "ปิดซ่อม"], ["bg-red-500", "ติดจอง"], ["bg-pink-500", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
                 <div key={l} className="flex items-center gap-1.5">
                   <span className={`w-3 h-3 rounded-sm ${c} inline-block shrink-0`} />
                   <span className="text-xs text-[#a1a1aa]">{l}</span>
@@ -343,7 +349,7 @@ export function AvailabilityPage() {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b78] text-sm">🔍</span>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหา DV-XXXX, โซน..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-[#6b6b78] focus:outline-none focus:border-emerald-500/50 transition-colors"/>
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-[#6b6b78] focus:outline-none focus:border-emerald-500/50 transition-colors" />
             </div>
             {sel && <div className="mb-3">
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">สถานะบ้าน</p>
@@ -356,45 +362,53 @@ export function AvailabilityPage() {
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">เรียงลำดับ</p>
               <div className="grid grid-cols-2 gap-1">
-                {([[ "price_asc","💰 ราคา ↑"],["price_desc","💰 ราคา ↓"],["bed_asc","🛏 ห้อง ↑"],["bed_desc","🛏 ห้อง ↓"]] as const).map(([v,l])=>(
-                  <button key={v} onClick={()=>setFilters(f=>({...f,sort:v}))} className={btnCls(filters.sort===v)}>{l}</button>
+                {([["price_asc", "💰 ราคา ↑"], ["price_desc", "💰 ราคา ↓"], ["bed_asc", "🛏 ห้อง ↑"], ["bed_desc", "🛏 ห้อง ↓"]] as const).map(([v, l]) => (
+                  <button key={v} onClick={() => setFilters(f => ({ ...f, sort: v }))} className={btnCls(filters.sort === v)}>{l}</button>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">ห้องนอน (ขั้นต่ำ)</p>
+              <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">ห้องนอน</p>
+              <div className="grid grid-cols-5 gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                  <button key={n} onClick={() => setFilters(f => ({ ...f, beds: f.beds.includes(n) ? f.beds.filter(x => x !== n) : [...f.beds, n] }))} className={btnCls(filters.beds.includes(n))}>{n === 8 ? "8+" : n}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">รับได้ (คน)</p>
               <div className="grid grid-cols-4 gap-1">
-                {[0,2,3,4,5,6,7,8].map(n=>(
-                  <button key={n} onClick={()=>setFilters(f=>({...f,minBed:f.minBed===n?0:n}))} className={btnCls(filters.minBed===n&&n>0)}>{n===0?"ทั้งหมด":`${n}+`}</button>
+                {[4, 6, 8, 10, 12, 15, 20, 25].map(n => (
+                  <button key={n} onClick={() => setFilters(f => ({ ...f, peoples: f.peoples.includes(n) ? f.peoples.filter(x => x !== n) : [...f.peoples, n] }))} className={btnCls(filters.peoples.includes(n))}>{n}+</button>
                 ))}
               </div>
             </div>
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">ราคา/คืน (สูงสุด)</p>
               <div className="grid grid-cols-3 gap-1">
-                {[0,2000,4000,6000,8000,12000,20000].map(n=>(
-                  <button key={n} onClick={()=>setFilters(f=>({...f,maxPrice:f.maxPrice===n?0:n}))} className={btnCls(filters.maxPrice===n&&n>0)}>{n===0?"ทั้งหมด":`≤${(n/1000).toFixed(0)}K`}</button>
+                {[0, 2000, 4000, 6000, 8000, 12000, 20000].map(n => (
+                  <button key={n} onClick={() => setFilters(f => ({ ...f, maxPrice: f.maxPrice === n ? 0 : n }))} className={btnCls(filters.maxPrice === n && n > 0)}>{n === 0 ? "ทั้งหมด" : `≤${(n / 1000).toFixed(0)}K`}</button>
                 ))}
               </div>
             </div>
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">ประเภทสระ</p>
               <div className="grid grid-cols-3 gap-1">
-                {([["","🏊 ทั้งหมด"],["chlorine","🧪 Chlorine"],["salt","🧂 Salt"]] as const).map(([v,l])=>(
-                  <button key={v} onClick={()=>setFilters(f=>({...f,swim:v}))} className={btnCls(filters.swim===v&&v!==""||filters.swim===""&&v==="")}>{l}</button>
+                {([["", "🏊 ทั้งหมด"], ["chlorine", "🧪 Chlorine"], ["salt", "🧂 Salt"]] as const).map(([v, l]) => (
+                  <button key={v} onClick={() => setFilters(f => ({ ...f, swim: v }))} className={btnCls(filters.swim === v && v !== "" || filters.swim === "" && v === "")}>{l}</button>
                 ))}
               </div>
             </div>
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">สิ่งอำนวยความสะดวก</p>
               <div className="grid grid-cols-3 gap-1">
-                {([[ "wifi","📶 WiFi"],["pet","🐾 Pet"],["grill","🍖 ปิ้งย่าง"],["karaoke","🎤 คาราโอเกะ"],["jacuzzi","🛁 จากุซซี่"],["snooker","🎱 สนุกเกอร์"],["discotech","🕺 ดิสโก้"],["slider","🛝 สไลเดอร์"],["billard","🎯 บิลเลียด"]] as const).map(([k,l])=>(
-                  <button key={k} onClick={()=>setFilters(f=>({...f,[k]:!f[k]}))} className={btnCls(!!filters[k as keyof typeof filters])}>{l}</button>
+                {([["wifi", "📶 WiFi"], ["pet", "🐾 Pet"], ["grill", "🍖 ปิ้งย่าง"], ["karaoke", "🎤 คาราโอเกะ"], ["jacuzzi", "🛁 จากุซซี่"], ["snooker", "🎱 สนุกเกอร์"], ["discotech", "🕺 ดิสโก้"], ["slider", "🛝 สไลเดอร์"], ["billard", "🎯 บิลเลียด"]] as const).map(([k, l]) => (
+                  <button key={k} onClick={() => setFilters(f => ({ ...f, [k]: !f[k] }))} className={btnCls(!!filters[k as keyof typeof filters])}>{l}</button>
                 ))}
               </div>
             </div>
-            {(search||activeCount>0)&&(
-              <button onClick={()=>{setSearch(""); reset();}} className="w-full py-2 text-xs text-red-400 border border-red-500/20 rounded-xl transition-all">✕ ล้างตัวกรองทั้งหมด ({activeCount})</button>
+            {(search || activeCount > 0) && (
+              <button onClick={() => { setSearch(""); reset(); }} className="w-full py-2 text-xs text-red-400 border border-red-500/20 rounded-xl transition-all">✕ ล้างตัวกรองทั้งหมด ({activeCount})</button>
             )}
           </div>
         </SheetContent>
@@ -426,7 +440,7 @@ export function AvailabilityPage() {
               </div>
               <CalGrid month={month} sel={sel} heatmap={heatmap} today={today} onSelect={handleDate} />
               <div className="mt-4 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-4 gap-y-2">
-                {([["bg-orange-500", "ปิดซ่อม"], ["bg-[#e8365d]", "ติดจอง"], ["bg-[#f9a8c9]", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
+                {([["bg-orange-500", "ปิดซ่อม"], ["bg-red-500", "ติดจอง"], ["bg-pink-500", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
                   <div key={l} className="flex items-center gap-1.5">
                     <span className={`w-3 h-3 rounded-sm ${c} inline-block shrink-0`} />
                     <span className="text-xs text-[#a1a1aa]">{l}</span>
@@ -468,18 +482,18 @@ export function AvailabilityPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">ห้องนอน (ขั้นต่ำ)</p>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[0, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                      <button key={n} onClick={() => setFilters(f => ({ ...f, minBed: f.minBed === n ? 0 : n }))} className={btnCls(filters.minBed === n && n > 0)}>{n === 0 ? "ทั้งหมด" : `${n}+`}</button>
+                  <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">ห้องนอน</p>
+                  <div className="grid grid-cols-5 gap-1">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                      <button key={n} onClick={() => setFilters(f => ({ ...f, beds: f.beds.includes(n) ? f.beds.filter(x => x !== n) : [...f.beds, n] }))} className={btnCls(filters.beds.includes(n))}>{n === 8 ? "8+" : n}</button>
                     ))}
                   </div>
                 </div>
                 <div>
                   <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">รับได้ (คน)</p>
                   <div className="grid grid-cols-4 gap-1">
-                    {[0, 4, 6, 8, 10, 12, 15, 20].map(n => (
-                      <button key={n} onClick={() => setFilters(f => ({ ...f, minPeople: f.minPeople === n ? 0 : n }))} className={btnCls(filters.minPeople === n && n > 0)}>{n === 0 ? "ทั้งหมด" : `${n}+`}</button>
+                    {[4, 6, 8, 10, 12, 15, 20, 25].map(n => (
+                      <button key={n} onClick={() => setFilters(f => ({ ...f, peoples: f.peoples.includes(n) ? f.peoples.filter(x => x !== n) : [...f.peoples, n] }))} className={btnCls(filters.peoples.includes(n))}>{n}+</button>
                     ))}
                   </div>
                 </div>
