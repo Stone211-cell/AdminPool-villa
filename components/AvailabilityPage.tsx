@@ -19,14 +19,14 @@ function HouseCard({ house }: { house: House }) {
   const swim = h.swim || "chlorine";
   const yn = (k: string) => h[k] === true || h[k] === "y";
   return (
-    <a href={`https://www.poolvilla-pwth.com/houses/${house.h_id}`} target="_blank" rel="noopener noreferrer"
+    <a href={`https://www.poolvilla-pwth.com/houses/${(house as any).hId || house.h_id}`} target="_blank" rel="noopener noreferrer"
       className="group flex flex-col rounded-2xl border border-white/8 bg-[#111113] overflow-hidden hover:border-emerald-500/30 hover:shadow-lg transition-all duration-300">
       <div className="relative h-44 overflow-hidden bg-[#1c1c1e]">
         {img
           ? <img src={img} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
           : <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">🏠</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-[#111113] via-transparent to-transparent" />
-        <span className="absolute top-2.5 right-2.5 text-xs font-semibold bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2.5 py-1 rounded-full">DV-{house.h_id}</span>
+        <span className="absolute top-2.5 right-2.5 text-xs font-semibold bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2.5 py-1 rounded-full">DV-{(house as any).hId || house.h_id}</span>
         {swim !== "n" && <span className={`absolute top-2.5 left-2.5 text-xs px-2.5 py-1 rounded-full font-medium border backdrop-blur-sm ${swim === "salt" ? "bg-blue-500/20 border-blue-400/30 text-blue-200" : "bg-cyan-500/20 border-cyan-400/30 text-cyan-200"}`}>{swim === "salt" ? "🧂 Salt" : "🏊 Pool"}</span>}
       </div>
       <div className="p-4 flex flex-col gap-2.5">
@@ -52,18 +52,32 @@ function HouseCard({ house }: { house: House }) {
   );
 }
 
-function CalGrid({ month, sel, heatmap, total, today, onSelect }: {
-  month: Date; sel: Date | null; heatmap: Record<string, number>; total: number; today: Date; onSelect: (d: Date) => void;
+// สถานะแต่ละวันจาก API
+type DayInfo = { booked: number; waiting: number; repair: number; holiday: number; hotpro: number; free: number; available: number };
+
+function CalGrid({ month, sel, heatmap, today, onSelect }: {
+  month: Date; sel: Date | null;
+  heatmap: Record<string, DayInfo | number>;
+  today: Date; onSelect: (d: Date) => void;
 }) {
   const y = month.getFullYear(), m = month.getMonth();
   const first = new Date(y, m, 1).getDay();
   const days = new Date(y, m + 1, 0).getDate();
   const cells = [...Array(first).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
+
+  // รับ DayInfo จาก heatmap
+  const getInfo = (key: string): DayInfo | null => {
+    const v = heatmap[key];
+    if (!v) return null;
+    if (typeof v === "number") return { booked: 0, waiting: 0, repair: 0, holiday: 0, hotpro: 0, free: v, available: v };
+    return v as DayInfo;
+  };
+
   return (
     <div className="grid grid-cols-7 gap-1">
       {THAI_DAYS.map((d, i) => (
-        <div key={d} className={`text-center text-xs font-medium py-1 ${i === 0 || i === 6 ? "text-red-400" : "text-[#6b6b78]"}`}>{d}</div>
+        <div key={d} className={`text-center text-xs font-semibold py-1 ${i === 0 || i === 6 ? "text-red-400" : "text-[#6b6b78]"}`}>{d}</div>
       ))}
       {cells.map((day, i) => {
         if (!day) return <div key={`e${i}`} />;
@@ -72,24 +86,58 @@ function CalGrid({ month, sel, heatmap, total, today, onSelect }: {
         const isSel = sel?.toDateString() === date.toDateString();
         const isPast = date < today;
         const isToday = date.toDateString() === today.toDateString();
-        const avail = heatmap[key];
-        const pct = total > 0 && avail !== undefined ? avail / total : 1;
         const isWknd = date.getDay() === 0 || date.getDay() === 6;
-        let cls = "flex flex-col items-center justify-center aspect-square rounded-xl text-sm transition-all duration-150 ";
-        if (isSel) cls += "bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/30 scale-110";
-        else if (isToday) cls += "ring-2 ring-emerald-500 font-bold text-emerald-400";
-        else if (isPast) cls += "text-[#333] cursor-not-allowed";
-        else if (avail !== undefined) {
-          if (pct >= 0.7) cls += "bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer";
-          else if (pct >= 0.3) cls += "bg-amber-500/15 border border-amber-500/25 text-amber-300 hover:bg-amber-500/30 cursor-pointer";
-          else cls += "bg-red-500/15 border border-red-500/25 text-red-300 hover:bg-red-500/30 cursor-pointer";
+        const info = getInfo(key);
+
+        // กำหนดสีตามลำดับความสำคัญ (เหมือนต้นฉบับ)
+        // repair > booked > waiting > hotpro > holiday > free
+        let bg = "", textCls = "", icon = "";
+        if (isSel) {
+          bg = "bg-emerald-500 shadow-lg shadow-emerald-500/30 scale-110";
+          textCls = "text-white font-bold";
+        } else if (isPast) {
+          bg = "";
+          textCls = "text-[#3a3a3a] cursor-not-allowed";
+        } else if (info) {
+          const total = (info.booked || 0) + (info.waiting || 0) + (info.repair || 0);
+          if (info.repair > 0 && info.repair === total) {
+            // ปิดซ่อมทุกหลัง
+            bg = "bg-orange-500"; textCls = "text-white font-bold";
+          } else if (total > 0 && info.free === 0) {
+            // ติดจองทั้งหมด
+            bg = "bg-[#e8365d]"; textCls = "text-white font-bold";
+          } else if (info.booked > 0 || info.waiting > 0) {
+            // ติดจองบางส่วน — สีชมพูอ่อน
+            bg = "bg-[#f9a8c9]"; textCls = "text-[#c0164a] font-semibold";
+          } else if (info.hotpro > 0) {
+            // โปรโมชั่น
+            bg = "bg-orange-400/20 border border-orange-400/40"; textCls = "text-orange-300 font-semibold"; icon = "🔥";
+          } else if (info.holiday > 0) {
+            // วันหยุด
+            bg = "bg-yellow-400/20 border border-yellow-400/40"; textCls = "text-yellow-300 font-semibold";
+          } else {
+            // ว่าง
+            bg = "bg-teal-500/15 border border-teal-500/30"; textCls = `${isWknd ? "text-red-300" : "text-teal-300"} font-medium`;
+          }
         } else {
-          cls += `${isWknd ? "text-red-300" : "text-[#a1a1aa]"} hover:bg-white/8 hover:text-white cursor-pointer`;
+          textCls = `${isWknd ? "text-red-400" : "text-[#a1a1aa]"}`;
         }
+
+        const isToday2 = isToday && !isSel ? "ring-2 ring-emerald-400" : "";
+        const canClick = !isPast && info !== null || !isPast;
+
         return (
-          <button key={key} onClick={() => !isPast && onSelect(date)} disabled={isPast} className={cls}>
+          <button
+            key={key}
+            onClick={() => !isPast && onSelect(date)}
+            disabled={isPast}
+            className={`relative flex flex-col items-center justify-center aspect-square rounded-xl text-sm transition-all duration-150 ${bg} ${textCls} ${isToday2} ${canClick && !isPast ? "hover:opacity-90 cursor-pointer" : ""}`}
+          >
+            {icon && <span className="absolute top-0.5 right-0.5 text-[8px] leading-none">{icon}</span>}
             <span>{day}</span>
-            {avail !== undefined && !isSel && <span className="text-[9px] opacity-50 leading-none">{avail}</span>}
+            {info && !isSel && info.available > 0 && !isPast && (
+              <span className="text-[8px] opacity-60 leading-none">{info.available}</span>
+            )}
           </button>
         );
       })}
@@ -148,7 +196,7 @@ export function AvailabilityPage() {
   const filtered = React.useMemo(() => {
     return [...houses].filter(h => {
       const ha = h as any;
-      const id = `DV-${h.h_id}`.toLowerCase();
+      const id = `DV-${ha.hId || ha.h_id}`.toLowerCase();
       const zone = (ha.hFarsea || ha.h_farsea || "").toLowerCase();
       if (search && !id.includes(search.toLowerCase()) && !zone.includes(search.toLowerCase())) return false;
       const bed = parseInt(ha.hBedroom ?? ha.h_bedroom ?? "0");
@@ -249,13 +297,13 @@ export function AvailabilityPage() {
               </div>
               <button onClick={() => navM(1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/8 text-[#a1a1aa] hover:text-white transition-colors">›</button>
             </div>
-            <CalGrid month={month} sel={sel} heatmap={heatmap} total={total} today={today}
+            <CalGrid month={month} sel={sel} heatmap={heatmap} today={today}
               onSelect={d => { handleDate(d); setMobileSheet(null); }}/>
-            <div className="mt-3 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-3 gap-y-1.5">
-              {[["bg-emerald-500/20 border-emerald-500/30","ว่างมาก"],["bg-amber-500/20 border-amber-500/30","ว่างบ้าง"],["bg-red-500/20 border-red-500/30","เกือบเต็ม"],["ring-2 ring-emerald-500","วันนี้"]].map(([c,l])=>(
+            <div className="mt-3 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-4 gap-y-2">
+              {([["bg-orange-500", "ปิดซ่อม"], ["bg-[#e8365d]", "ติดจอง"], ["bg-[#f9a8c9]", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
                 <div key={l} className="flex items-center gap-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-sm border ${c} inline-block shrink-0`}/>
-                  <span className="text-xs text-[#6b6b78]">{l}</span>
+                  <span className={`w-3 h-3 rounded-sm ${c} inline-block shrink-0`} />
+                  <span className="text-xs text-[#a1a1aa]">{l}</span>
                 </div>
               ))}
             </div>
@@ -349,12 +397,12 @@ export function AvailabilityPage() {
                 </div>
                 <button onClick={() => navM(1)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/8 text-[#a1a1aa] hover:text-white transition-colors">›</button>
               </div>
-              <CalGrid month={month} sel={sel} heatmap={heatmap} total={total} today={today} onSelect={handleDate} />
-              <div className="mt-4 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-3 gap-y-1.5">
-                {[["bg-emerald-500/20 border-emerald-500/30", "ว่างมาก (70%+)"], ["bg-amber-500/20 border-amber-500/30", "ว่างบ้าง"], ["bg-red-500/20 border-red-500/30", "เกือบเต็ม"], ["ring-2 ring-emerald-500", "วันนี้"]].map(([c, l]) => (
+              <CalGrid month={month} sel={sel} heatmap={heatmap} today={today} onSelect={handleDate} />
+              <div className="mt-4 pt-3 border-t border-white/8 grid grid-cols-2 gap-x-4 gap-y-2">
+                {([["bg-orange-500", "ปิดซ่อม"], ["bg-[#e8365d]", "ติดจอง"], ["bg-[#f9a8c9]", "รอโอน"], ["bg-teal-500/15 border border-teal-500/30", "ว่าง"], ["bg-orange-400/20 border border-orange-400/40", "โปรโมชั่น 🔥"], ["bg-yellow-400/20 border border-yellow-400/40", "วันหยุด"]] as const).map(([c, l]) => (
                   <div key={l} className="flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-sm border ${c} inline-block shrink-0`} />
-                    <span className="text-xs text-[#6b6b78]">{l}</span>
+                    <span className={`w-3 h-3 rounded-sm ${c} inline-block shrink-0`} />
+                    <span className="text-xs text-[#a1a1aa]">{l}</span>
                   </div>
                 ))}
               </div>
@@ -457,7 +505,7 @@ export function AvailabilityPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filtered.map(h => <HouseCard key={h.h_id} house={h} />)}
+                {filtered.map(h => <HouseCard key={(h as any).hId || (h as any).h_id} house={h} />)}
               </div>
             )}
           </div>
@@ -466,4 +514,5 @@ export function AvailabilityPage() {
     </div>
   );
 }
+
 

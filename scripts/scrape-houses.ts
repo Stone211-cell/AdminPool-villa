@@ -13,11 +13,9 @@
 
 import "dotenv/config";
 import axios from "axios";
-import { PrismaClient } from "../app/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../app/generated/prisma";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 // ---- Types ----
 interface HouseRaw {
@@ -84,17 +82,25 @@ async function fetchDetail(hId: string) {
       `https://www.poolvilla-pwth.com/houses/${hId}`,
       { headers: { RSC: "1", Accept: "text/x-component", "User-Agent": "Mozilla/5.0" }, responseType: "text", timeout: 15000 }
     );
-    const marker = '"bk":{"bookings"';
-    const idx = text.indexOf(marker);
-    if (idx === -1) return null;
-    let start = idx;
-    while (start > 0 && text[start] !== "{") start--;
-    let depth = 0, end = start;
-    for (let i = start; i < text.length; i++) {
-      if (text[i] === "{") depth++;
-      else if (text[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+    // RSC stream: scan each line for a JSON object containing both "acc" and "bk"
+    for (const line of text.split("\n")) {
+      if (!line.includes('"bk"') || !line.includes('"acc"')) continue;
+      const firstBrace = line.indexOf("{");
+      if (firstBrace === -1) continue;
+      try {
+        let depth = 0, end = firstBrace;
+        for (let i = firstBrace; i < line.length; i++) {
+          if (line[i] === "{") depth++;
+          else if (line[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
+        }
+        const obj = JSON.parse(line.slice(firstBrace, end + 1));
+        if (obj.acc && obj.bk) return obj as {
+          acc: HouseAcc;
+          bk: { bookings: Booking[]; holidays: Holiday[]; hot_holidays: Holiday[]; base_price: BasePrice };
+        };
+      } catch { /**/ }
     }
-    return JSON.parse(text.slice(start, end + 1)) as { acc: HouseAcc; bk: { bookings: Booking[]; holidays: Holiday[]; hot_holidays: Holiday[]; base_price: BasePrice } };
+    return null;
   } catch { return null; }
 }
 
@@ -132,7 +138,7 @@ async function upsertHouse(h: HouseRaw) {
 
 // ---- Upsert detail + bookings ----
 async function upsertDetail(hId: string, acc: HouseAcc, bk: { bookings: Booking[]; holidays: Holiday[]; hot_holidays: Holiday[]; base_price: BasePrice }) {
-  // HouseDetail
+  // HouseDetail — ใช้ field names จริงจาก acc
   await prisma.houseDetail.upsert({
     where: { houseId: hId },
     create: {
@@ -142,12 +148,14 @@ async function upsertDetail(hId: string, acc: HouseAcc, bk: { bookings: Booking[
       extra: parseInt(acc.h_extra) || 0,
       insurance: parseInt(acc.h_insurance) || 0,
       peopleMax: parseInt(acc.h_people_max) || 0,
-      location: acc.location || "", sea: acc.sea || "",
-      parking: acc.h_parking || "", kitchen: acc.h_kitchen_ware || "",
-      additionalCosts: acc.h_additional_costs || "",
-      moreDetail: acc.h_moredetail || "",
-      bedroomDetail: acc.h_bedroom_detail || "",
-      alert: acc.h_alert || "",
+      location: acc.location || "",
+      sea: acc.sea || "",
+      parking: (acc as any).h_parking || "",
+      kitchen: (acc as any).h_kitchen_ware || (acc as any).h_kitchen || "",
+      additionalCosts: (acc as any).h_additional_costs || "",
+      moreDetail: (acc as any).h_moredetail || "",
+      bedroomDetail: (acc as any).h_bedroom_detail || "",
+      alert: (acc as any).h_alert || "",
     },
     update: {
       checkin: (acc.h_time_checkin || "14:00:00").slice(0, 5),
@@ -155,20 +163,26 @@ async function upsertDetail(hId: string, acc: HouseAcc, bk: { bookings: Booking[
       extra: parseInt(acc.h_extra) || 0,
       insurance: parseInt(acc.h_insurance) || 0,
       peopleMax: parseInt(acc.h_people_max) || 0,
-      location: acc.location || "", sea: acc.sea || "",
-      parking: acc.h_parking || "", kitchen: acc.h_kitchen_ware || "",
-      additionalCosts: acc.h_additional_costs || "",
-      moreDetail: acc.h_moredetail || "",
-      bedroomDetail: acc.h_bedroom_detail || "",
-      alert: acc.h_alert || "",
+      location: acc.location || "",
+      sea: acc.sea || "",
+      parking: (acc as any).h_parking || "",
+      kitchen: (acc as any).h_kitchen_ware || (acc as any).h_kitchen || "",
+      additionalCosts: (acc as any).h_additional_costs || "",
+      moreDetail: (acc as any).h_moredetail || "",
+      bedroomDetail: (acc as any).h_bedroom_detail || "",
+      alert: (acc as any).h_alert || "",
     },
   });
 
   // Bookings — ลบเก่าแล้วสร้างใหม่
   await prisma.booking.deleteMany({ where: { houseId: hId } });
-  if (bk.bookings.length > 0) {
+  const validBookings = bk.bookings.filter(b => {
+    const ci = new Date(b.book_checkin), co = new Date(b.book_checkout);
+    return !isNaN(ci.getTime()) && !isNaN(co.getTime());
+  });
+  if (validBookings.length > 0) {
     await prisma.booking.createMany({
-      data: bk.bookings.map(b => ({
+      data: validBookings.map(b => ({
         houseId: hId,
         checkIn: new Date(b.book_checkin),
         checkOut: new Date(b.book_checkout),
@@ -179,7 +193,10 @@ async function upsertDetail(hId: string, acc: HouseAcc, bk: { bookings: Booking[
 
   // Holidays
   await prisma.holiday.deleteMany({ where: { houseId: hId } });
-  const allHolidays = [...(bk.holidays || []), ...(bk.hot_holidays || [])];
+  const allHolidays = [...(bk.holidays || []), ...(bk.hot_holidays || [])].filter(h => {
+    const s = new Date(h.holiday_start), e = new Date(h.holiday_end);
+    return !isNaN(s.getTime()) && !isNaN(e.getTime());
+  });
   if (allHolidays.length > 0) {
     await prisma.holiday.createMany({
       data: allHolidays.map(h => ({
@@ -203,6 +220,7 @@ async function upsertDetail(hId: string, acc: HouseAcc, bk: { bookings: Booking[
       update: { priceSun: bp.price_sun, priceMon: bp.price_mon, priceTue: bp.price_tue, priceWed: bp.price_wed, priceThu: bp.price_thu, priceFri: bp.price_fri, priceSat: bp.price_sat },
     });
   }
+
 }
 
 // ---- Main ----
@@ -216,36 +234,44 @@ async function main() {
     let houses: HouseRaw[];
 
     if (singleHouse) {
-      // scrape แค่หลังเดียว
       houses = [{ h_id: singleHouse, h_zone: "pattaya", h_bedroom: "0", h_toilet: "0", h_farsea: "", wifi: "n", grill: "n", pet: "n", snooker: "n", discotech: "n", slider: "n", billard: "n", swimming_kid: "n", swim: "chlorine", karaoke: "n", airhockey: "n", jacuzzi: "n", bath: "n", img_name: "", price: "0", people: "0", _id: "" }];
     } else {
       houses = await fetchAllHouses();
       if (limit > 0) houses = houses.slice(0, limit);
     }
 
-    console.log(`📦 พบ ${houses.length} หลัง — กำลังบันทึกลง DB...`);
+    console.log(`📦 พบ ${houses.length} หลัง — กำลังบันทึกลง DB แบบคู่ขนาน...`);
 
     let saved = 0, failed = 0;
-    for (const h of houses) {
-      try {
-        if (!singleHouse) await upsertHouse(h);
 
-        if (withDetail || singleHouse) {
-          process.stdout.write(`   🔍 ดึง detail บ้าน ${h.h_id}... `);
-          await new Promise(r => setTimeout(r, 300)); // rate limit
-          const detail = await fetchDetail(h.h_id);
-          if (detail?.acc && detail?.bk) {
-            await upsertDetail(h.h_id, detail.acc, detail.bk);
-            console.log(`✅ (${detail.bk.bookings.length} bookings)`);
-          } else {
-            console.log(`⚠️ ไม่มี detail`);
+    // Process in batches of 20
+    const concurrency = 20;
+    for (let i = 0; i < houses.length; i += concurrency) {
+      const batch = houses.slice(i, i + concurrency);
+
+      await Promise.all(batch.map(async (h) => {
+        try {
+          if (!singleHouse) await upsertHouse(h);
+
+          if (withDetail || singleHouse) {
+            const detail = await fetchDetail(h.h_id);
+            if (detail?.acc && detail?.bk) {
+              await upsertDetail(h.h_id, detail.acc, detail.bk);
+              console.log(`   ✅ บ้าน ${h.h_id} สำเร็จ (${detail.bk.bookings.length} bookings)`);
+            } else {
+              console.log(`   ⚠️ บ้าน ${h.h_id} ไม่มี detail`);
+            }
           }
+          saved++;
+        } catch (e) {
+          console.error(`   ❌ บ้าน ${h.h_id} พลาด:`, e instanceof Error ? e.message : String(e));
+          failed++;
         }
-        saved++;
-      } catch (e) {
-        console.error(`   ❌ บ้าน ${h.h_id}:`, e);
-        failed++;
-      }
+      }));
+
+      // Print progress
+      const current = Math.min(i + concurrency, houses.length);
+      console.log(`--- ความคืบหน้า: ${current}/${houses.length} ---`);
     }
 
     console.log(`\n✅ สำเร็จ ${saved} หลัง | ❌ ล้มเหลว ${failed} หลัง`);

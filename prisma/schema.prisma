@@ -2,18 +2,20 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ข้อมูลหลักของบ้านพูลวิลล่า
 model House {
   id          String   @id @default(cuid())
-  hId         String   @unique @map("h_id")        // รหัสบ้าน เช่น "2866"
+  hId         String   @unique @map("h_id") // รหัสบ้าน เช่น "2866"
   hZone       String   @default("pattaya") @map("h_zone")
   hBedroom    Int      @map("h_bedroom")
   hToilet     Int      @map("h_toilet")
@@ -37,10 +39,10 @@ model House {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // รายละเอียดเพิ่มเติม (จากหน้า detail)
-  detail      HouseDetail?
-  bookings    Booking[]
-  holidays    Holiday[]
-  basePrices  BasePrice[]
+  detail     HouseDetail?
+  bookings   Booking[]
+  holidays   Holiday[]
+  basePrices BasePrice[]
 
   @@map("houses")
 }
@@ -51,8 +53,8 @@ model HouseDetail {
   houseId         String   @unique @map("house_id")
   checkin         String   @default("14:00") @map("h_time_checkin")
   checkout        String   @default("12:00") @map("h_time_checkout")
-  extra           Int      @default(0)         // ค่าคนเสริม/คืน
-  insurance       Int      @default(0)         // ค่าประกันความเสียหาย
+  extra           Int      @default(0) // ค่าคนเสริม/คืน
+  insurance       Int      @default(0) // ค่าประกันความเสียหาย
   peopleMax       Int      @default(0) @map("people_max")
   location        String   @default("")
   sea             String   @default("")
@@ -71,12 +73,12 @@ model HouseDetail {
 
 // การจอง (วันที่ถูกจอง/ปิด)
 model Booking {
-  id          String   @id @default(cuid())
-  houseId     String   @map("house_id")
-  checkIn     DateTime @map("book_checkin")
-  checkOut    DateTime @map("book_checkout")
-  bookType    String   @default("guest") @map("book_type") // guest | owner | repair
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  houseId   String   @map("house_id")
+  checkIn   DateTime @map("book_checkin")
+  checkOut  DateTime @map("book_checkout")
+  bookType  String   @default("guest") @map("book_type") // guest | owner | repair
+  createdAt DateTime @default(now()) @map("created_at")
 
   house House @relation(fields: [houseId], references: [hId])
 
@@ -85,15 +87,15 @@ model Booking {
 
 // วันหยุด/ราคาพิเศษ
 model Holiday {
-  id          String   @id @default(cuid())
-  houseId     String   @map("house_id")
-  start       DateTime
-  end         DateTime
-  type        String   @default("holiday") // holiday | hotpro
-  price       Int      @default(0)
-  people      Int      @default(0)
-  alert       String   @default("")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  houseId   String   @map("house_id")
+  start     DateTime
+  end       DateTime
+  type      String   @default("holiday") // holiday | hotpro
+  price     Int      @default(0)
+  people    Int      @default(0)
+  alert     String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
 
   house House @relation(fields: [houseId], references: [hId])
 

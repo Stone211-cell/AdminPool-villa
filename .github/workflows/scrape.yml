@@ -1,0 +1,33 @@
+name: Auto Sync Poolvilla
+
+on:
+  schedule:
+    # GitHub อนุญาตให้ตั้งได้ต่ำสุดที่ 5 นาที (เร็วสุดที่เป็นไปได้ของ GitHub Actions)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # อนุญาตให้กดรันเองได้ในหน้าเว็บ GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        
+      - name: Run Scraper
+        env:
+          # ต้องไปเพิ่มตัวแปรนี้ใน GitHub > Settings > Secrets and variables > Actions
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx tsx scripts/scrape-houses.ts --detail
