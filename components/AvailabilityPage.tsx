@@ -161,11 +161,12 @@ export function AvailabilityPage() {
     beds: [] as number[], maxPrice: 0, peoples: [] as number[], swim: "" as "" | "salt" | "chlorine",
     pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false,
     snooker: false, discotech: false, slider: false, billard: false,
-    sort: "price_asc" as "price_asc" | "price_desc" | "bed_asc" | "bed_desc",
+    sort: "price_asc" as "price_asc" | "price_desc" | "bed_asc" | "bed_desc" | "sea_asc" | "sea_desc",
   });
   const [filtersOpen, setFiltersOpen] = React.useState(true);
   const [mobileSheet, setMobileSheet] = React.useState<"calendar" | "filter" | null>(null);
   const [statusFilter, setStatusFilter] = React.useState<"all" | "repair" | "booked" | "waiting" | "free" | "hotpro" | "holiday">("all");
+  const [seaFilter, setSeaFilter] = React.useState<"" | "beach" | "near" | "far">("");
   const exactMatchId = React.useMemo(() => {
     if (!search) return null;
     const match = search.match(/(?:dv-?)?(\d+)/i);
@@ -204,8 +205,23 @@ export function AvailabilityPage() {
   };
 
   const yn = (h: any, k: string) => h[k] === true || h[k] === "y";
-  const activeCount = [filters.beds.length, filters.maxPrice, filters.peoples.length, filters.swim, filters.pet, filters.karaoke, filters.jacuzzi, filters.wifi, filters.grill, filters.snooker, filters.discotech, filters.slider, filters.billard].filter(Boolean).length;
-  const reset = () => { setSearch(""); setStatusFilter("all"); setFilters({ beds: [], maxPrice: 0, peoples: [], swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
+
+  // แปลง hFarsea string → km (เพื่อกรอง)
+  const parseSeaKm = (raw: string): number => {
+    if (!raw) return 999;
+    const s = raw.trim().toLowerCase();
+    if (s === "ติดทะเล") return 0;
+    // เมตร: "200 ม.", "400 เมตร", "50 เมตร", "90 ม."
+    const mMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.)/);
+    if (mMatch) return parseFloat(mMatch[1]) / 1000;
+    // กม: "3 กม.", "4.2 กม.", "5 กิโล", "2 กิโลเมตร"
+    const kMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:กม\.|ก\.\u0e21\.|gม\.|km|กิโล|กิโลเมตร)/);
+    if (kMatch) return parseFloat(kMatch[1]);
+    return 999;
+  };
+
+  const activeCount = [filters.beds.length, filters.maxPrice, filters.peoples.length, filters.swim, filters.pet, filters.karaoke, filters.jacuzzi, filters.wifi, filters.grill, filters.snooker, filters.discotech, filters.slider, filters.billard, seaFilter].filter(Boolean).length;
+  const reset = () => { setSearch(""); setStatusFilter("all"); setSeaFilter(""); setFilters({ beds: [], maxPrice: 0, peoples: [], swim: "", pet: false, karaoke: false, jacuzzi: false, wifi: false, grill: false, snooker: false, discotech: false, slider: false, billard: false, sort: "price_asc" }); };
 
   const filtered = React.useMemo(() => {
     return [...houses].filter(h => {
@@ -231,6 +247,13 @@ export function AvailabilityPage() {
         if (ppl < minP) return false;
       }
       if (filters.swim && (ha.swim || "chlorine") !== filters.swim) return false;
+      // กรองระยะทะเล
+      if (seaFilter) {
+        const km = parseSeaKm(ha.hFarsea || ha.h_farsea || "");
+        if (seaFilter === "beach" && km > 0.5) return false;
+        if (seaFilter === "near" && (km <= 0.5 || km > 3)) return false;
+        if (seaFilter === "far" && km <= 3) return false;
+      }
       for (const k of ["pet", "karaoke", "jacuzzi", "wifi", "grill", "snooker", "discotech", "slider", "billard"] as const)
         if (filters[k] && !yn(ha, k)) return false;
       return true;
@@ -238,13 +261,17 @@ export function AvailabilityPage() {
       const ap = parseInt((a as any).price ?? "0"), bp = parseInt((b as any).price ?? "0");
       const ab = parseInt((a as any).hBedroom ?? (a as any).h_bedroom ?? "0");
       const bb = parseInt((b as any).hBedroom ?? (b as any).h_bedroom ?? "0");
+      const ak = parseSeaKm((a as any).hFarsea || (a as any).h_farsea || "");
+      const bk = parseSeaKm((b as any).hFarsea || (b as any).h_farsea || "");
       if (filters.sort === "price_asc") return ap - bp;
       if (filters.sort === "price_desc") return bp - ap;
       if (filters.sort === "bed_asc") return ab - bb;
       if (filters.sort === "bed_desc") return bb - ab;
+      if (filters.sort === "sea_asc") return ak - bk;  // ใกล้ทะเล → ไกล
+      if (filters.sort === "sea_desc") return bk - ak; // ไกลทะเล → ใกล้
       return 0;
     });
-  }, [houses, search, filters]);
+  }, [houses, search, filters, sel, statusFilter, seaFilter]);
 
   const navM = (d: number) => setMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + d); return n; });
   const btnCls = (on: boolean) => `text-md py-1.5 px-2 rounded-lg border transition-all ${on ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300" : "bg-white/5 border-white/10 text-white hover:border-white/20"}`;
@@ -359,6 +386,20 @@ export function AvailabilityPage() {
                 ))}
               </div>
             </div>}
+            {/* ปุ่มระยะทะเล mobile */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 mb-3">
+              <p className="text-xs font-medium text-white uppercase tracking-wider mb-2">🏖️ ระยะทะเล</p>
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                {([["", "🏘️ ทั้งหมด"], ["beach", "🌊 ติดทะเล (≤0.5กม.)"], ["near", "🚶 ใกล้ (0.5–3กม.)"], ["far", "🚗 ไกล (>3กม.)"]] as const).map(([v, l]) => (
+                  <button key={v} onClick={() => setSeaFilter(v)} className={`py-1.5 px-1.5 rounded-lg border text-[11px] text-center transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-95 leading-snug ${seaFilter === v ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>{l}</button>
+                ))}
+              </div>
+              <p className="text-[11px] text-[#6b6b78] mb-1.5 mt-2">เรียงลำดับระยะทะเล:</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button onClick={() => setFilters(f => ({ ...f, sort: "sea_asc" }))} className={`py-1.5 px-2 rounded-lg border text-xs transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-95 ${filters.sort === "sea_asc" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>🌊 ใกล้ → ไกล</button>
+                <button onClick={() => setFilters(f => ({ ...f, sort: "sea_desc" }))} className={`py-1.5 px-2 rounded-lg border text-xs transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-95 ${filters.sort === "sea_desc" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>🚗 ไกล → ใกล้</button>
+              </div>
+            </div>
             <div>
               <p className="text-xs font-medium text-[#6b6b78] uppercase tracking-wider mb-1.5">เรียงลำดับ</p>
               <div className="grid grid-cols-2 gap-1">
@@ -464,6 +505,21 @@ export function AvailabilityPage() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder-[#6b6b78] focus:outline-none focus:border-emerald-500/50 transition-colors" />
               </div>
 
+              {/* ปุ่มระยะทะเล - แสดงเสมอใต้ช่องค้นหา */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 mb-2">
+                <p className="text-md font-medium text-white uppercase tracking-wider mb-2">🏖️ ระยะทะเล</p>
+                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                  {([["", "🏘️ ทั้งหมด"], ["beach", "🌊 ติดทะเล (≤0.5กม.)"], ["near", "🚶 ใกล้ (0.5–3กม.)"], ["far", "🚗 ไกล (>3กม.)"]] as const).map(([v, l]) => (
+                    <button key={v} onClick={() => setSeaFilter(v)} className={`py-2 m-1 rounded-lg border text-md text-center transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-95 leading-snug ${seaFilter === v ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>{l}</button>
+                  ))}
+                </div>
+                <p className="text-md text-white mb-1.5 mt-2">เรียงลำดับระยะทะเล:</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button onClick={() => setFilters(f => ({ ...f, sort: "sea_asc" }))} className={`py-1.5 px-2 rounded-lg border text-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-95 ${filters.sort === "sea_asc" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>🌊 ใกล้ → ไกล</button>
+                  <button onClick={() => setFilters(f => ({ ...f, sort: "sea_desc" }))} className={`py-1.5 px-2 rounded-lg border text-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 active:scale-95 ${filters.sort === "sea_desc" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold shadow-emerald-500/20" : "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-emerald-500/30"}`}>🚗 ไกล → ใกล้</button>
+                </div>
+              </div>
+
               {filtersOpen && <>
                 {sel && <div>
                   <p className="text-md font-medium text-white uppercase tracking-wider mb-1.5">สถานะบ้าน</p>
@@ -560,7 +616,7 @@ export function AvailabilityPage() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
