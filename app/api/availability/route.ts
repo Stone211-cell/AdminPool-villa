@@ -28,7 +28,11 @@ export async function GET(req: NextRequest) {
     // ── Fallback ─────────────────────────────────────────────────────────────
     if (totalHouses === 0) {
       const houses = await fetchHouses();
-      return NextResponse.json({ houses, dbMode: false });
+      return NextResponse.json({ houses, dbMode: false }, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      });
     }
 
     // ── Calendar heatmap ──────────────────────────────────────────────────────
@@ -88,7 +92,11 @@ export async function GET(req: NextRequest) {
         cur.setUTCDate(cur.getUTCDate() + 1);
       }
 
-      return NextResponse.json({ heatmap, totalHouses, dbMode: true });
+      return NextResponse.json({ heatmap, totalHouses, dbMode: true }, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      });
     }
 
     // ── บ้านว่างในวันที่ระบุ ──────────────────────────────────────────────────
@@ -135,6 +143,10 @@ export async function GET(req: NextRequest) {
         dbMode: true,
         total: houses.length,
         date,
+      }, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
       });
     }
 
@@ -142,11 +154,19 @@ export async function GET(req: NextRequest) {
     const houses = await prisma.house.findMany({
       orderBy: { price: "asc" },
     });
-    return NextResponse.json({ houses, dbMode: true });
+    return NextResponse.json({ houses, dbMode: true }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
 
   } catch (err) {
     console.error("[availability] DB error, fallback:", err);
     const houses = await fetchHouses();
-    return NextResponse.json({ houses, dbMode: false });
+    return NextResponse.json({ houses, dbMode: false }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    });
   }
 }

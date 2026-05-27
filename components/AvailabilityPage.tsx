@@ -178,18 +178,19 @@ export function AvailabilityPage() {
   React.useEffect(() => {
     const y = month.getFullYear(), m2 = month.getMonth() + 1;
     Promise.all([
-      axios.get("/api/availability").then(r => r.data),
-      axios.get(`/api/availability?year=${y}&month=${m2}`).then(r => r.data).catch(() => ({})),
+      axios.get("/api/availability", { timeout: 15000 }).then(r => r.data).catch(() => ({ houses: [] })),
+      axios.get(`/api/availability?year=${y}&month=${m2}`, { timeout: 15000 }).then(r => r.data).catch(() => ({})),
     ]).then(([hr, cr]) => {
       setHouses(hr.houses || []); setTotal(hr.houses?.length || 0); setDbMode(hr.dbMode ?? false);
       if (cr.heatmap) { setHeatmap(cr.heatmap); setTotal(cr.totalHouses || hr.houses?.length || 0); }
-    }).finally(() => setLoading(false));
+    }).catch(err => console.error("Initial load error", err))
+      .finally(() => setLoading(false));
   }, []);
 
   React.useEffect(() => {
     const y = month.getFullYear(), m2 = month.getMonth() + 1;
     const url = `/api/availability?year=${y}&month=${m2}` + (exactMatchId ? `&houseId=${exactMatchId}` : "");
-    axios.get(url).then(r => r.data)
+    axios.get(url, { timeout: 15000 }).then(r => r.data)
       .then(d => { if (d.heatmap) { setHeatmap(d.heatmap); if (d.totalHouses && !exactMatchId) setTotal(d.totalHouses); } }).catch(() => { });
   }, [month, exactMatchId]);
 
@@ -199,7 +200,7 @@ export function AvailabilityPage() {
     const m = String(date.getMonth() + 1).padStart(2, "0");
     const d = String(date.getDate()).padStart(2, "0");
     const key = `${y}-${m}-${d}`;
-    const res = await axios.get(`/api/availability?date=${key}`).then(r => r.data).catch(() => null);
+    const res = await axios.get(`/api/availability?date=${key}`, { timeout: 15000 }).then(r => r.data).catch(() => null);
     if (res?.houses) { setHouses(res.houses); setDbMode(res.dbMode ?? false); }
     setLoading(false);
   };
