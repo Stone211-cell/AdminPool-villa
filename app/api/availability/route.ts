@@ -108,7 +108,6 @@ export async function GET(req: NextRequest) {
       ]);
 
       const houses = await prisma.house.findMany({
-        include: { detail: true },
         orderBy: { price: "asc" },
       });
 
@@ -141,7 +140,6 @@ export async function GET(req: NextRequest) {
 
     // ── บ้านทั้งหมด ───────────────────────────────────────────────────────────
     const houses = await prisma.house.findMany({
-      include: { detail: true },
       orderBy: { price: "asc" },
     });
     return NextResponse.json({ houses, dbMode: true });
