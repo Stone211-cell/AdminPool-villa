@@ -228,6 +228,7 @@ async function main() {
   const args = process.argv.slice(2);
   const singleHouse = args.find(a => a.startsWith("--house="))?.split("=")[1];
   const withDetail = args.includes("--detail");
+  const isFullSync = args.includes("--full");
   const limit = parseInt(args.find(a => a.startsWith("--limit="))?.split("=")[1] || "0");
 
   try {
@@ -236,11 +237,60 @@ async function main() {
     if (singleHouse) {
       houses = [{ h_id: singleHouse, h_zone: "pattaya", h_bedroom: "0", h_toilet: "0", h_farsea: "", wifi: "n", grill: "n", pet: "n", snooker: "n", discotech: "n", slider: "n", billard: "n", swimming_kid: "n", swim: "chlorine", karaoke: "n", airhockey: "n", jacuzzi: "n", bath: "n", img_name: "", price: "0", people: "0", _id: "" }];
     } else {
-      houses = await fetchAllHouses();
-      if (limit > 0) houses = houses.slice(0, limit);
+      const remoteHouses = await fetchAllHouses();
+      if (isFullSync) {
+        houses = remoteHouses;
+        if (limit > 0) houses = houses.slice(0, limit);
+      } else if (withDetail) {
+        console.log("🔍 กำลังดึงข้อมูลจาก DB เพื่อหาบ้านใหม่และเปรียบเทียบข้อมูล...");
+        const dbHouses = await prisma.house.findMany({
+          select: { hId: true, price: true, hBedroom: true, hToilet: true, people: true, imgName: true, updatedAt: true }
+        });
+        const dbHouseMap = new Map(dbHouses.map(h => [h.hId, h]));
+
+        const newHouses: HouseRaw[] = [];
+        const modifiedHouses: HouseRaw[] = [];
+        const unchangedHouses: HouseRaw[] = [];
+
+        for (const rh of remoteHouses) {
+          const dbHouse = dbHouseMap.get(rh.h_id);
+          if (!dbHouse) {
+            newHouses.push(rh);
+          } else {
+            const isModified =
+              (parseInt(rh.price) || 0) !== dbHouse.price ||
+              (parseInt(rh.h_bedroom) || 0) !== dbHouse.hBedroom ||
+              (parseInt(rh.h_toilet) || 0) !== dbHouse.hToilet ||
+              (parseInt(rh.people) || 0) !== dbHouse.people ||
+              (rh.img_name || "") !== dbHouse.imgName;
+
+            if (isModified) {
+              modifiedHouses.push(rh);
+            } else {
+              unchangedHouses.push(rh);
+            }
+          }
+        }
+
+        // Sort unchanged by updatedAt ascending
+        unchangedHouses.sort((a, b) => {
+          const timeA = dbHouseMap.get(a.h_id)?.updatedAt.getTime() || 0;
+          const timeB = dbHouseMap.get(b.h_id)?.updatedAt.getTime() || 0;
+          return timeA - timeB;
+        });
+
+        const syncLimit = limit > 0 ? limit : 50;
+        houses = [...newHouses, ...modifiedHouses, ...unchangedHouses].slice(0, syncLimit);
+
+        console.log(`💡 สถิติจากระบบ: บ้านใหม่ ${newHouses.length} หลัง | ข้อมูลเปลี่ยนไป ${modifiedHouses.length} หลัง | บ้านคงเดิม ${unchangedHouses.length} หลัง`);
+        console.log(`📌 รอบนี้จะดึงรายละเอียดบ้านทั้งหมด ${houses.length} หลัง (บ้านใหม่ + เปลี่ยนแปลง + บ้านเดิมค้างซิงค์นานที่สุด)`);
+      } else {
+        houses = remoteHouses;
+        if (limit > 0) houses = houses.slice(0, limit);
+      }
     }
 
-    console.log(`📦 พบ ${houses.length} หลัง — กำลังบันทึกลง DB แบบคู่ขนาน...`);
+    console.log(`📦 ดำเนินการซิงค์ข้อมูล ${houses.length} หลัง...`);
 
     let saved = 0, failed = 0;
 
@@ -251,20 +301,24 @@ async function main() {
 
       await Promise.all(batch.map(async (h) => {
         try {
+          // Always upsert basic info first to record that this house was touched (updates updatedAt)
           if (!singleHouse) await upsertHouse(h);
 
           if (withDetail || singleHouse) {
+            await new Promise(r => setTimeout(r, 200)); // rate limit
             const detail = await fetchDetail(h.h_id);
             if (detail?.acc && detail?.bk) {
               await upsertDetail(h.h_id, detail.acc, detail.bk);
-              console.log(`   ✅ บ้าน ${h.h_id} สำเร็จ (${detail.bk.bookings.length} bookings)`);
+              console.log(`   ✅ บ้าน ${h.h_id} ซิงค์รายละเอียดสำเร็จ (${detail.bk.bookings.length} bookings)`);
             } else {
-              console.log(`   ⚠️ บ้าน ${h.h_id} ไม่มี detail`);
+              throw new Error("ดึงข้อมูลปฏิทินจองหรือรายละเอียดจากหน้าเว็บต้นฉบับไม่สำเร็จ");
             }
+          } else {
+            console.log(`   ✅ บ้าน ${h.h_id} ซิงค์ข้อมูลหลักสำเร็จ`);
           }
           saved++;
         } catch (e) {
-          console.error(`   ❌ บ้าน ${h.h_id} พลาด:`, e instanceof Error ? e.message : String(e));
+          console.error(`   ❌ บ้าน ${h.h_id} ล้มเหลว:`, e instanceof Error ? e.message : String(e));
           failed++;
         }
       }));

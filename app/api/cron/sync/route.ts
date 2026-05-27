@@ -80,7 +80,7 @@ async function fetchDetail(hId: string) {
 async function syncHouse(h: HouseRaw): Promise<{ bookings: number; holidays: number }> {
   const y = (v: string) => v === "y";
 
-  // Upsert house info
+  // 1. Always upsert house info first to record that this house was touched (updates updatedAt)
   await prisma.house.upsert({
     where: { hId: h.h_id },
     create: {
@@ -107,10 +107,12 @@ async function syncHouse(h: HouseRaw): Promise<{ bookings: number; holidays: num
     },
   });
 
-  // Fetch detail
+  // 2. Fetch detail
   await new Promise(r => setTimeout(r, 200)); // rate limit
   const detail = await fetchDetail(h.h_id);
-  if (!detail?.acc || !detail?.bk) return { bookings: 0, holidays: 0 };
+  if (!detail?.acc || !detail?.bk) {
+    throw new Error("ไม่มีข้อมูลรายละเอียดหรือสถานะการจองจากเว็บต้นฉบับ");
+  }
 
   const { acc, bk } = detail;
 
@@ -197,13 +199,57 @@ export async function GET(req: NextRequest) {
   const results: { hId: string; bookings: number; holidays: number; error?: string }[] = [];
 
   try {
-    const houses = await fetchAllHouses();
-    console.log(`[cron/sync] Fetched ${houses.length} houses`);
+    const remoteHouses = await fetchAllHouses();
+    console.log(`[cron/sync] Fetched ${remoteHouses.length} houses from remote`);
+
+    // Smart prioritization chunking
+    const dbHouses = await prisma.house.findMany({
+      select: { hId: true, price: true, hBedroom: true, hToilet: true, people: true, imgName: true, updatedAt: true }
+    });
+    const dbHouseMap = new Map(dbHouses.map(h => [h.hId, h]));
+
+    const newHouses: HouseRaw[] = [];
+    const modifiedHouses: HouseRaw[] = [];
+    const unchangedHouses: HouseRaw[] = [];
+
+    for (const rh of remoteHouses) {
+      const dbHouse = dbHouseMap.get(rh.h_id);
+      if (!dbHouse) {
+        newHouses.push(rh);
+      } else {
+        const isModified =
+          (parseInt(rh.price) || 0) !== dbHouse.price ||
+          (parseInt(rh.h_bedroom) || 0) !== dbHouse.hBedroom ||
+          (parseInt(rh.h_toilet) || 0) !== dbHouse.hToilet ||
+          (parseInt(rh.people) || 0) !== dbHouse.people ||
+          (rh.img_name || "") !== dbHouse.imgName;
+
+        if (isModified) {
+          modifiedHouses.push(rh);
+        } else {
+          unchangedHouses.push(rh);
+        }
+      }
+    }
+
+    // Sort unchanged by updatedAt ascending
+    unchangedHouses.sort((a, b) => {
+      const timeA = dbHouseMap.get(a.h_id)?.updatedAt.getTime() || 0;
+      const timeB = dbHouseMap.get(b.h_id)?.updatedAt.getTime() || 0;
+      return timeA - timeB;
+    });
+
+    // Limit to 50 houses per cron run to easily fit in Vercel's limits
+    const LIMIT = 50;
+    const housesToSync = [...newHouses, ...modifiedHouses, ...unchangedHouses].slice(0, LIMIT);
+
+    console.log(`[cron/sync] Smart stats: new=${newHouses.length}, modified=${modifiedHouses.length}, unchanged=${unchangedHouses.length}`);
+    console.log(`[cron/sync] Selected ${housesToSync.length} houses to sync in this run`);
 
     // Process in batches of 20 concurrently
     const concurrency = 20;
-    for (let i = 0; i < houses.length; i += concurrency) {
-      const batch = houses.slice(i, i + concurrency);
+    for (let i = 0; i < housesToSync.length; i += concurrency) {
+      const batch = housesToSync.slice(i, i + concurrency);
       
       await Promise.all(batch.map(async (h) => {
         try {
@@ -221,12 +267,13 @@ export async function GET(req: NextRequest) {
     const successCount = results.filter(r => !r.error).length;
     const totalBookings = results.reduce((s, r) => s + r.bookings, 0);
     
-    console.log(`[cron/sync] Done: ${successCount}/${houses.length} houses, ${totalBookings} bookings, ${elapsed}s`);
+    console.log(`[cron/sync] Done: ${successCount}/${housesToSync.length} synced, total remote=${remoteHouses.length}, ${totalBookings} bookings, ${elapsed}s`);
 
     return NextResponse.json({
       ok: true,
       synced: successCount,
-      total: houses.length,
+      total: remoteHouses.length,
+      chunkSize: housesToSync.length,
       totalBookings,
       elapsed: `${elapsed}s`,
       timestamp: new Date().toISOString(),
