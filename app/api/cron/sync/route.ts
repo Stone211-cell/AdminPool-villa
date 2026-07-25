@@ -1,288 +1,197 @@
 // app/api/cron/sync/route.ts
-// Vercel Cron Job — sync ข้อมูลบ้านและการจองจาก poolvilla-pwth.com ทุก 10 นาที
-// 
-// ตั้งค่าใน vercel.json:
-//   { "crons": [{ "path": "/api/cron/sync", "schedule": "*/10 * * * *" }] }
-
+// Vercel Cron Job — sync ข้อมูลบ้านและการจองจาก poolvillacity.co.th
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import axios from "axios";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // 5 นาที timeout สำหรับ Vercel Pro
+export const maxDuration = 300;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface HouseRaw {
-  _id: string; h_id: string; h_zone: string;
-  h_bedroom: string; h_toilet: string; h_farsea: string;
-  wifi: string; grill: string; pet: string; snooker: string;
-  discotech: string; slider: string; billard: string;
-  swimming_kid: string; swim: string; karaoke: string;
-  airhockey: string; jacuzzi: string; bath: string;
-  img_name: string; price: string; people: string;
-}
-interface BookingRaw { book_checkin: string; book_checkout: string; book_type: string; }
-interface HolidayRaw { holiday_start: string; holiday_end: string; holiday_type: string; holiday_price: number; holiday_people: string; holiday_alert: string; }
-interface BasePriceRaw { price_sun: number; price_mon: number; price_tue: number; price_wed: number; price_thu: number; price_fri: number; price_sat: number; }
+const API_BASE = "https://api.poolvillacity.co.th/next-villapaza/api";
 
-const RSC_HEADERS = { RSC: "1", Accept: "text/x-component", "User-Agent": "Mozilla/5.0" };
-const isValidDate = (d: Date) => !isNaN(d.getTime());
-
-// ── Fetch รายการบ้านทั้งหมด ──────────────────────────────────────────────────
-async function fetchAllHouses(): Promise<HouseRaw[]> {
-  const { data: text } = await axios.get<string>("https://www.poolvilla-pwth.com/houses", {
-    headers: RSC_HEADERS, responseType: "text", timeout: 30000,
-  });
-  const all: HouseRaw[] = [];
-  let pos = 0;
-  while (true) {
-    const idx = text.indexOf('"data":[{"_id"', pos);
-    if (idx === -1) break;
-    const arrStart = idx + '"data":'.length;
-    let depth = 0, arrEnd = arrStart;
-    for (let i = arrStart; i < text.length; i++) {
-      if (text[i] === "[") depth++;
-      else if (text[i] === "]") { depth--; if (depth === 0) { arrEnd = i; break; } }
-    }
-    try { all.push(...JSON.parse(text.slice(arrStart, arrEnd + 1))); } catch { /**/ }
-    pos = arrEnd + 1;
-  }
-  return Array.from(new Map(all.filter(h => h.h_id).map(h => [h.h_id, h])).values());
+// ── Shared sync logic ─────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  return runSync(req);
 }
 
-// ── Fetch detail + bookings ของแต่ละบ้าน ─────────────────────────────────────
-async function fetchDetail(hId: string) {
-  const { data: text } = await axios.get<string>(
-    `https://www.poolvilla-pwth.com/houses/${hId}`,
-    { headers: RSC_HEADERS, responseType: "text", timeout: 20000 }
-  );
-  for (const line of text.split("\n")) {
-    if (!line.includes('"bk"') || !line.includes('"acc"')) continue;
-    const start = line.indexOf("{");
-    if (start === -1) continue;
-    try {
-      let depth = 0, end = start;
-      for (let i = start; i < line.length; i++) {
-        if (line[i] === "{") depth++;
-        else if (line[i] === "}") { depth--; if (depth === 0) { end = i; break; } }
-      }
-      const obj = JSON.parse(line.slice(start, end + 1));
-      if (obj.acc && obj.bk) return obj as {
-        acc: any;
-        bk: { bookings: BookingRaw[]; holidays: HolidayRaw[]; hot_holidays: HolidayRaw[]; base_price: BasePriceRaw };
-      };
-    } catch { /**/ }
-  }
-  return null;
-}
-
-// ── Sync บ้าน 1 หลัง ─────────────────────────────────────────────────────────
-async function syncHouse(h: HouseRaw): Promise<{ bookings: number; holidays: number }> {
-  const y = (v: string) => v === "y";
-
-  // 1. Always upsert house info first to record that this house was touched (updates updatedAt)
-  await prisma.house.upsert({
-    where: { hId: h.h_id },
-    create: {
-      hId: h.h_id, hZone: h.h_zone || "pattaya",
-      hBedroom: parseInt(h.h_bedroom) || 0, hToilet: parseInt(h.h_toilet) || 0,
-      hFarsea: h.h_farsea || "", price: parseInt(h.price) || 0,
-      people: parseInt(h.people) || 0, imgName: h.img_name || "",
-      swim: h.swim || "chlorine",
-      wifi: y(h.wifi), grill: y(h.grill), pet: y(h.pet),
-      karaoke: y(h.karaoke), jacuzzi: y(h.jacuzzi), snooker: y(h.snooker),
-      discotech: y(h.discotech), slider: y(h.slider), billard: y(h.billard),
-      swimmingKid: y(h.swimming_kid), bath: y(h.bath),
-    },
-    update: {
-      hZone: h.h_zone || "pattaya",
-      hBedroom: parseInt(h.h_bedroom) || 0, hToilet: parseInt(h.h_toilet) || 0,
-      hFarsea: h.h_farsea || "", price: parseInt(h.price) || 0,
-      people: parseInt(h.people) || 0, imgName: h.img_name || "",
-      swim: h.swim || "chlorine",
-      wifi: y(h.wifi), grill: y(h.grill), pet: y(h.pet),
-      karaoke: y(h.karaoke), jacuzzi: y(h.jacuzzi), snooker: y(h.snooker),
-      discotech: y(h.discotech), slider: y(h.slider), billard: y(h.billard),
-      swimmingKid: y(h.swimming_kid), bath: y(h.bath),
-    },
-  });
-
-  // 2. Fetch detail
-  await new Promise(r => setTimeout(r, 200)); // rate limit
-  const detail = await fetchDetail(h.h_id);
-  if (!detail?.acc || !detail?.bk) {
-    throw new Error("ไม่มีข้อมูลรายละเอียดหรือสถานะการจองจากเว็บต้นฉบับ");
-  }
-
-  const { acc, bk } = detail;
-
-  // Upsert HouseDetail
-  const detailData = {
-    checkin: (acc.h_time_checkin || "14:00:00").slice(0, 5),
-    checkout: (acc.h_time_checkout || "12:00:00").slice(0, 5),
-    extra: parseInt(acc.h_extra) || 0,
-    insurance: parseInt(acc.h_insurance) || 0,
-    peopleMax: parseInt(acc.h_people_max) || 0,
-    location: acc.location || "", sea: acc.sea || "",
-    parking: acc.h_parking || "",
-    kitchen: acc.h_kitchen_ware || acc.h_kitchen || "",
-    additionalCosts: acc.h_additional_costs || "",
-    moreDetail: acc.h_moredetail || "",
-    bedroomDetail: acc.h_bedroom_detail || "",
-    alert: acc.h_alert || "",
-  };
-  await prisma.houseDetail.upsert({
-    where: { houseId: h.h_id },
-    create: { houseId: h.h_id, ...detailData },
-    update: detailData,
-  });
-
-  // Bookings — replace all
-  await prisma.booking.deleteMany({ where: { houseId: h.h_id } });
-  const validBookings = (bk.bookings || []).filter(b => {
-    const ci = new Date(b.book_checkin), co = new Date(b.book_checkout);
-    return isValidDate(ci) && isValidDate(co);
-  });
-  if (validBookings.length > 0) {
-    await prisma.booking.createMany({
-      data: validBookings.map(b => ({
-        houseId: h.h_id,
-        checkIn: new Date(b.book_checkin),
-        checkOut: new Date(b.book_checkout),
-        bookType: b.book_type || "guest",
-      })),
-    });
-  }
-
-  // Holidays — replace all
-  await prisma.holiday.deleteMany({ where: { houseId: h.h_id } });
-  const allHolidays = [...(bk.holidays || []), ...(bk.hot_holidays || [])].filter(h => {
-    const s = new Date(h.holiday_start), e = new Date(h.holiday_end);
-    return isValidDate(s) && isValidDate(e);
-  });
-  if (allHolidays.length > 0) {
-    await prisma.holiday.createMany({
-      data: allHolidays.map(hol => ({
-        houseId: h.h_id, start: new Date(hol.holiday_start), end: new Date(hol.holiday_end),
-        type: hol.holiday_type || "holiday", price: hol.holiday_price || 0,
-        people: parseInt(hol.holiday_people) || 0, alert: hol.holiday_alert || "",
-      })),
-    });
-  }
-
-  // BasePrice
-  if (bk.base_price) {
-    const bp = bk.base_price;
-    const bpData = { priceSun: bp.price_sun, priceMon: bp.price_mon, priceTue: bp.price_tue, priceWed: bp.price_wed, priceThu: bp.price_thu, priceFri: bp.price_fri, priceSat: bp.price_sat };
-    await prisma.basePrice.upsert({
-      where: { houseId: h.h_id },
-      create: { houseId: h.h_id, ...bpData },
-      update: bpData,
-    });
-  }
-
-  return { bookings: validBookings.length, holidays: allHolidays.length };
-}
-
-// ── Route Handler ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  // ตรวจสอบ Authorization (ป้องกัน abuse)
+  return runSync(req);
+}
+
+async function runSync(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
+  if (secret && req.method !== "POST") {
     const auth = req.headers.get("authorization") ?? req.nextUrl.searchParams.get("secret");
     if (auth !== `Bearer ${secret}` && auth !== secret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
 
-  const startTime = Date.now();
-  const results: { hId: string; bookings: number; holidays: number; error?: string }[] = [];
+  const targetHouseId = req.nextUrl.searchParams.get("houseId");
 
   try {
-    const remoteHouses = await fetchAllHouses();
-    console.log(`[cron/sync] Fetched ${remoteHouses.length} houses from remote`);
+    // 1. Fetch all houses from new API
+    console.log("[cron/sync] Fetching all houses from new API...");
+    const res = await axios.post(`${API_BASE}/customer/house/filter?offset=0&limit=1000`, {}, { timeout: 30000 });
+    let remoteHouses: any[] = res.data?.results || [];
 
-    // Smart prioritization chunking
-    const dbHouses = await prisma.house.findMany({
-      select: { hId: true, price: true, hBedroom: true, hToilet: true, people: true, imgName: true, updatedAt: true }
-    });
-    const dbHouseMap = new Map(dbHouses.map(h => [h.hId, h]));
-
-    const newHouses: HouseRaw[] = [];
-    const modifiedHouses: HouseRaw[] = [];
-    const unchangedHouses: HouseRaw[] = [];
-
-    for (const rh of remoteHouses) {
-      const dbHouse = dbHouseMap.get(rh.h_id);
-      if (!dbHouse) {
-        newHouses.push(rh);
-      } else {
-        const isModified =
-          (parseInt(rh.price) || 0) !== dbHouse.price ||
-          (parseInt(rh.h_bedroom) || 0) !== dbHouse.hBedroom ||
-          (parseInt(rh.h_toilet) || 0) !== dbHouse.hToilet ||
-          (parseInt(rh.people) || 0) !== dbHouse.people ||
-          (rh.img_name || "") !== dbHouse.imgName;
-
-        if (isModified) {
-          modifiedHouses.push(rh);
-        } else {
-          unchangedHouses.push(rh);
-        }
+    // Filter to single house if requested
+    if (targetHouseId) {
+      remoteHouses = remoteHouses.filter(h => h.code === `CITY-${targetHouseId}` || h.code === targetHouseId);
+      if (remoteHouses.length === 0) {
+        return NextResponse.json({ error: "ไม่พบบ้านหลังนี้" }, { status: 404 });
       }
     }
 
-    // Sort unchanged by updatedAt ascending
-    unchangedHouses.sort((a, b) => {
-      const timeA = dbHouseMap.get(a.h_id)?.updatedAt.getTime() || 0;
-      const timeB = dbHouseMap.get(b.h_id)?.updatedAt.getTime() || 0;
-      return timeA - timeB;
+    // Prepare limit (increase to 50 to sync all current houses at once)
+    const LIMIT = targetHouseId ? 1 : 50;
+    
+    // Check DB modified
+    const dbHouses = await prisma.house.findMany({ select: { hId: true, updatedAt: true } });
+    const dbHouseMap = new Map(dbHouses.map(h => [h.hId, h]));
+
+    // Sort: new houses first, then oldest updated
+    remoteHouses.sort((a, b) => {
+      const aId = (a.code || "").replace("CITY-", "");
+      const bId = (b.code || "").replace("CITY-", "");
+      const aTime = dbHouseMap.get(aId)?.updatedAt.getTime() || 0;
+      const bTime = dbHouseMap.get(bId)?.updatedAt.getTime() || 0;
+      return aTime - bTime;
     });
 
-    // Limit to 50 houses per cron run to easily fit in Vercel's limits
-    const LIMIT = 50;
-    const housesToSync = [...newHouses, ...modifiedHouses, ...unchangedHouses].slice(0, LIMIT);
+    const housesToSync = remoteHouses.slice(0, LIMIT);
+    console.log(`[cron/sync] Selected ${housesToSync.length} houses to sync`);
 
-    console.log(`[cron/sync] Smart stats: new=${newHouses.length}, modified=${modifiedHouses.length}, unchanged=${unchangedHouses.length}`);
-    console.log(`[cron/sync] Selected ${housesToSync.length} houses to sync in this run`);
+    let synced = 0;
+    let totalBookings = 0;
 
-    // Process in batches of 20 concurrently
-    const concurrency = 20;
+    // Process houses in batches of 5 concurrently to speed up
+    const concurrency = 5;
     for (let i = 0; i < housesToSync.length; i += concurrency) {
-      const batch = housesToSync.slice(i, i + concurrency);
+      const chunk = housesToSync.slice(i, i + concurrency);
       
-      await Promise.all(batch.map(async (h) => {
+      await Promise.all(chunk.map(async (rh) => {
         try {
-          const r = await syncHouse(h);
-          results.push({ hId: h.h_id, ...r });
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          results.push({ hId: h.h_id, bookings: 0, holidays: 0, error: msg });
-          console.error(`[cron/sync] Error house ${h.h_id}:`, msg);
+          const hId = (rh.code || "").replace("CITY-", "");
+          if (!hId) return;
+
+          // Fetch details & bookings
+          const detailRes = await axios.get(`${API_BASE}/customer/house/info/CITY-${hId}`, { timeout: 15000 });
+          const data = detailRes.data?.result;
+          if (!data || !data.house) return;
+
+          const h = data.house;
+          const facs = Array.isArray(h.facilities) ? h.facilities : [];
+          const hasFac = (name: string) => facs.some((f: any) => f.name_th?.includes(name) || f.name_en?.toLowerCase().includes(name.toLowerCase()));
+
+          // Upsert house
+          const houseData = {
+            hId: hId,
+            hZone: h.district || "pattaya",
+            hBedroom: h.number_of_bedrooms || 0,
+            hToilet: h.number_of_bathrooms || 0,
+            hFarsea: "",
+            price: parseInt(rh.price_house?.[0]?.every_day?.[0]?.price || 0),
+            people: h.accommodate_number || 0,
+            imgName: rh.thumbnail?.[0] ? `https://sgp1.digitaloceanspaces.com/villapaza-spaces${rh.thumbnail[0]}` : "",
+            swim: hasFac("salt") ? "salt" : "chlorine",
+            wifi: hasFac("wifi") || hasFac("อินเทอร์เน็ต"),
+            grill: hasFac("เตาปิ้งย่าง"),
+            pet: hasFac("สัตว์เลี้ยง"),
+            karaoke: hasFac("คาราโอเกะ"),
+            jacuzzi: hasFac("จากุซซี่"),
+            snooker: hasFac("สนุ๊กเกอร์"),
+            discotech: hasFac("ไฟเธค"),
+            slider: hasFac("สไลเดอร์"),
+            billard: hasFac("บิลเลียด"),
+            swimmingKid: hasFac("สระเด็ก"),
+            bath: hasFac("อ่างอาบน้ำ"),
+          };
+
+          await prisma.house.upsert({
+            where: { hId },
+            create: houseData,
+            update: houseData
+          });
+
+          // Upsert house details
+          const detailData = {
+            houseId: hId,
+            checkin: h.check_in_time || "14:00",
+            checkout: h.check_out_time || "12:00",
+            extra: h.additional_stay_information?.extra_per_person || 0,
+            insurance: h.additional_stay_information?.damage_insurance || 0,
+            peopleMax: h.accommodate_number || 0,
+            location: h.location?.name || "",
+            sea: "", parking: "", kitchen: "", additionalCosts: "",
+            moreDetail: h.detail || "",
+            bedroomDetail: "",
+            alert: h.additional_stay_information?.service || "",
+          };
+          await prisma.houseDetail.upsert({
+            where: { houseId: hId },
+            create: detailData,
+            update: detailData
+          });
+
+          // Parse bookings
+          await prisma.booking.deleteMany({ where: { houseId: hId } });
+          await prisma.holiday.deleteMany({ where: { houseId: hId } });
+
+          const books = Array.isArray(data.book) ? data.book : [];
+          let bCount = 0;
+
+          for (const b of books) {
+            if (!b.date_start || !b.date_end) continue;
+            const statusName = b.status?.name_th || "";
+            
+            if (statusName === "เทศกาล" || statusName === "ลดราคา" || statusName === "โปรโมชั่น") {
+              const hType = statusName === "เทศกาล" ? "holiday" : "hotpro";
+              await prisma.holiday.create({
+                data: {
+                  houseId: hId,
+                  start: new Date(b.date_start),
+                  end: new Date(b.date_end),
+                  type: hType,
+                  price: 0,
+                  people: 0,
+                  alert: ""
+                }
+              });
+            } else {
+              let bType = "deville"; // default for booked
+              if (statusName === "รอชำระ") bType = "waiting";
+              if (statusName === "ปิดปรับปรุง") bType = "repair";
+              
+              await prisma.booking.create({
+                data: {
+                  houseId: hId,
+                  checkIn: new Date(b.date_start),
+                  checkOut: new Date(new Date(b.date_end).getTime() + 86400000), // add 1 day to make it exclusive if it's a single day
+                  bookType: bType
+                }
+              });
+              bCount++;
+            }
+          }
+
+          synced++;
+          totalBookings += bCount;
+        } catch (err: any) {
+          console.error(`[cron/sync] Error syncing house ${rh.code}:`, err.message);
         }
       }));
     }
 
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
-    const successCount = results.filter(r => !r.error).length;
-    const totalBookings = results.reduce((s, r) => s + r.bookings, 0);
-    
-    console.log(`[cron/sync] Done: ${successCount}/${housesToSync.length} synced, total remote=${remoteHouses.length}, ${totalBookings} bookings, ${elapsed}s`);
-
     return NextResponse.json({
-      ok: true,
-      synced: successCount,
-      total: remoteHouses.length,
-      chunkSize: housesToSync.length,
+      success: true,
+      synced,
       totalBookings,
-      elapsed: `${elapsed}s`,
-      timestamp: new Date().toISOString(),
-      results,
+      total: remoteHouses.length
     });
 
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error("[cron/sync] Fatal error:", msg);
-    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  } catch (error: any) {
+    console.error("[cron/sync] Fatal error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

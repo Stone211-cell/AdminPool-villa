@@ -25,10 +25,14 @@ export async function GET(req: NextRequest) {
   try {
     const totalHouses = await prisma.house.count();
 
+    // ดึง lastSyncAt จาก updatedAt ล่าสุดใน DB
+    const lastSyncHouse = await prisma.house.findFirst({ orderBy: { updatedAt: "desc" }, select: { updatedAt: true } });
+    const lastSyncAt = lastSyncHouse?.updatedAt?.toISOString() ?? null;
+
     // ── Fallback ─────────────────────────────────────────────────────────────
     if (totalHouses === 0) {
       const houses = await fetchHouses();
-      return NextResponse.json({ houses, dbMode: false }, {
+      return NextResponse.json({ houses, dbMode: false, lastSyncAt }, {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
@@ -39,9 +43,11 @@ export async function GET(req: NextRequest) {
     if (year && month) {
       const y = parseInt(year), m = parseInt(month);
       const monthStart = new Date(Date.UTC(y, m - 1, 1));
-      const monthEnd   = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+      
+      // ดึงข้อมูลเผื่อ 3 เดือนสำหรับให้กดเลื่อนดูในปฏิทินเล็กได้
+      const monthEnd   = new Date(Date.UTC(y, m + 2, 0, 23, 59, 59));
 
-      // ดึง bookings และ holidays ทั้งหมดในเดือน
+      // ดึง bookings และ holidays ทั้งหมดในระยะเวลา
       const [bookings, holidays] = await Promise.all([
         prisma.booking.findMany({
           where: { checkIn: { lt: monthEnd }, checkOut: { gt: monthStart }, ...(houseId ? { houseId } : {}) },
@@ -55,6 +61,9 @@ export async function GET(req: NextRequest) {
 
       // สร้าง dayStatus: { "2026-05-01": { booked:5, waiting:1, repair:2, holiday:3, hotpro:2, free:83 } }
       const heatmap: Record<string, { booked: number; waiting: number; repair: number; holiday: number; hotpro: number; free: number; available: number }> = {};
+      
+      // สร้าง heatmap แยกรายบ้าน: { "2872": { "2026-05-01": "booked", "2026-05-02": "holiday" } }
+      const houseHeatmap: Record<string, Record<string, DayStatus>> = {};
 
       const cur = new Date(monthStart);
       while (cur <= monthEnd) {
@@ -88,11 +97,18 @@ export async function GET(req: NextRequest) {
           free:    available,
           available,
         };
+        
+        // ใส่ข้อมูลลง houseHeatmap สำหรับบ้านที่มีการจอง/วันหยุด
+        for (const hId of bookedSet)  { houseHeatmap[hId] = houseHeatmap[hId] || {}; houseHeatmap[hId][key] = "booked"; }
+        for (const hId of waitingSet) { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "waiting"; }
+        for (const hId of repairSet)  { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "repair"; }
+        for (const hId of hotproSet)  { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "hotpro"; }
+        for (const hId of holidaySet) { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "holiday"; }
 
         cur.setUTCDate(cur.getUTCDate() + 1);
       }
 
-      return NextResponse.json({ heatmap, totalHouses, dbMode: true }, {
+      return NextResponse.json({ heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt }, {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
@@ -143,6 +159,7 @@ export async function GET(req: NextRequest) {
         dbMode: true,
         total: houses.length,
         date,
+        lastSyncAt,
       }, {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
@@ -154,7 +171,7 @@ export async function GET(req: NextRequest) {
     const houses = await prisma.house.findMany({
       orderBy: { price: "asc" },
     });
-    return NextResponse.json({ houses, dbMode: true }, {
+    return NextResponse.json({ houses, dbMode: true, lastSyncAt }, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
@@ -163,7 +180,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[availability] DB error, fallback:", err);
     const houses = await fetchHouses();
-    return NextResponse.json({ houses, dbMode: false }, {
+    return NextResponse.json({ houses, dbMode: false, lastSyncAt: null }, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
