@@ -13,9 +13,9 @@ export const maxDuration = 60;
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: Promise<{ hId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { hId } = await params;
+  const { id: hId } = await params;
   if (!hId) {
     return NextResponse.json({ error: "ไม่ระบุ hId" }, { status: 400 });
   }
