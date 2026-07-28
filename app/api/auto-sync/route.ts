@@ -18,12 +18,16 @@ export async function GET(req: NextRequest) {
 
 async function runSync(req: NextRequest) {
   // Optional auth for GET requests from external cron services
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.method === "GET") {
-    const auth =
-      req.headers.get("authorization") ?? req.nextUrl.searchParams.get("secret");
-    if (auth !== `Bearer ${secret}` && auth !== secret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const envSecret = process.env.CRON_SECRET;
+  const hardcodedSecret = "pool-villa-sync-2024-secret";
+  
+  if (req.method === "GET") {
+    const auth = req.headers.get("authorization") ?? req.nextUrl.searchParams.get("secret");
+    const token = auth?.replace("Bearer ", "");
+    
+    // Check against both env and hardcoded secret
+    if (token !== envSecret && token !== hardcodedSecret) {
+      return NextResponse.json({ error: "Unauthorized", received: token || "none" }, { status: 401 });
     }
   }
 
