@@ -141,15 +141,15 @@ function HouseCard({ house, selectedDate, houseHeatmap, month }: { house: House;
   const url = `https://poolvillacity.co.th/house/CITY-${hId}`;
 
   const [syncing, setSyncing] = React.useState(false);
+  const [syncDone, setSyncDone] = React.useState(false);
   const handleSync = async (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
-    setSyncing(true);
+    setSyncing(true); setSyncDone(false);
     try {
-      await axios.post(`/api/cron/sync?houseId=${hId}`);
-      // Notify parent to refresh data? Or just let user know it's done
-      // Actually we can just show a temporary checkmark via state
-      alert(`อัพเดทบ้าน CITY-${hId} สำเร็จ!`);
-    } catch (err) {
+      await axios.post(`/api/houses/${hId}/sync`);
+      setSyncDone(true);
+      setTimeout(() => setSyncDone(false), 3000);
+    } catch {
       alert("เกิดข้อผิดพลาดในการอัพเดท");
     } finally {
       setSyncing(false);
@@ -231,11 +231,13 @@ function HouseCard({ house, selectedDate, houseHeatmap, month }: { house: House;
           <div className="grid grid-cols-2 gap-2">
             <button onClick={handleSync} disabled={syncing}
               className={`flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold rounded-xl transition-all shadow-sm h-10 ${
-                syncing 
+                syncDone
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : syncing 
                   ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse cursor-wait" 
                   : "bg-blue-500/10 text-blue-400 hover:text-white hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-400 cursor-pointer"
               }`}>
-              {syncing ? "⏳ อัพเดทข้อมูล..." : "🔄 อัพเดทก่อนดูทุกครั้ง"}
+              {syncDone ? "✅ อัพเดทแล้ว!" : syncing ? "⏳ กำลังอัพเดท..." : "🔄 อัพเดทก่อนดูทุกครั้ง"}
             </button>
             <a href={url} target="_blank" rel="noopener noreferrer"
               className="flex items-center justify-center text-sm font-bold text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/30 hover:border-emerald-400 rounded-xl transition-all shadow-sm h-10">
