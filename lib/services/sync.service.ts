@@ -29,10 +29,14 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     hBedroom: h.number_of_bedrooms || 0,
     hToilet: h.number_of_bathrooms || 0,
     hFarsea: "",
-    price:
-      rh.lowestPrice ||
-      Math.min(...(rh.price_house?.[0]?.every_day?.map((d) => d.price) || [0])) ||
-      0,
+    price: (() => {
+      let p = typeof rh.lowestPrice === 'object' ? (rh.lowestPrice as any)?.price : Number(rh.lowestPrice);
+      if (!p || isNaN(p)) {
+        const prices = rh.price_house?.[0]?.every_day?.map((d: any) => typeof d.price === 'object' ? d.price.price : Number(d.price)).filter(n => !isNaN(n)) || [];
+        p = prices.length > 0 ? Math.min(...prices) : 0;
+      }
+      return p || 0;
+    })(),
     people: h.accommodate_number || 0,
     imgName: toImageUrl(rh.thumbnail?.[0]),
     swim: hasFac("salt") ? "salt" : "chlorine",
