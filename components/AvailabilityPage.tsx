@@ -93,8 +93,8 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
     yn(house,"snooker")   && "🎱 สนุกเกอร์",
   ].filter(Boolean) as string[];
 
-  // Link to search on poolvillacity.co.th (their SPA, direct detail not possible)
-  const detailUrl = `https://poolvillacity.co.th/search#${hId}`;
+  // Link to specific house detail
+  const detailUrl = `https://poolvillacity.co.th/CITY-${hId}`;
 
   const [syncing, setSyncing] = React.useState(false);
   const [syncDone, setSyncDone] = React.useState(false);
@@ -190,9 +190,9 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
                 : "bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/25 hover:text-white cursor-pointer"}`}>
               {syncDone ? "✅ อัพเดทแล้ว" : syncing ? "⏳ กำลังอัพ..." : "🔄 อัพเดทก่อนดู"}
             </button>
-            <a href={`https://poolvillacity.co.th/new-house`} target="_blank" rel="noopener noreferrer"
+            <a href={detailUrl} target="_blank" rel="noopener noreferrer"
               className="h-9 flex items-center justify-center text-sm font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
-              ค้นหา →
+              ดูรายละเอียด →
             </a>
           </div>
         </div>
