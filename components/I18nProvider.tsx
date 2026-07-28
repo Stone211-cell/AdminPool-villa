@@ -38,13 +38,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     return dict[key] || key;
   };
 
-  if (!mounted) {
-    return <div className="invisible">{children}</div>;
-  }
-
+  // Always provide context, even before mounted, to prevent SSR errors
   return (
     <I18nContext.Provider value={{ lang, t, setLang }}>
-      {children}
+      <div className={mounted ? "" : "invisible"}>
+        {children}
+      </div>
     </I18nContext.Provider>
   );
 }
