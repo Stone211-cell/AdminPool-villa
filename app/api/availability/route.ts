@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
             end:   { gte: monthStart },
             ...(houseId ? { houseId } : {}),
           },
-          select: { houseId: true, start: true, end: true, type: true },
+          select: { houseId: true, start: true, end: true, type: true, price: true, people: true },
         }),
       ]);
 
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt },
+        { heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt, holidays: fastHolidays },
         { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
       );
     }
@@ -135,7 +135,11 @@ export async function GET(req: NextRequest) {
           where: { start: { lte: dayEnd }, end: { gte: dayStart } },
           select: { houseId: true, type: true },
         }),
-        prisma.house.findMany({ where: houseWhere, orderBy: { price: "asc" } }),
+        prisma.house.findMany({ 
+          where: houseWhere, 
+          orderBy: { price: "asc" },
+          include: { detail: true, basePrices: true }
+        }),
       ]);
 
       const statusMap = new Map<string, DayStatus>();
@@ -173,6 +177,7 @@ export async function GET(req: NextRequest) {
       orderBy: { updatedAt: "desc" },  // Most recently synced first
       skip,
       take: limit,
+      include: { detail: true, basePrices: true }
     })).map(h => ({
       ...h,
       imgName: h.imgName?.replace('https://poolvillacity.co.th', 'https://sgp1.digitaloceanspaces.com/villapaza-spaces')

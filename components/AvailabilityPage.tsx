@@ -338,6 +338,7 @@ export function AvailabilityPage() {
   const [houses, setHouses]   = React.useState<House[]>([]);
   const [heatmap, setHeatmap] = React.useState<Record<string, any>>({});
   const [houseMap, setHouseMap] = React.useState<Record<string, Record<string, DayStatus>>>({});
+  const [holidays, setHolidays] = React.useState<any[]>([]);
   const [totalHouses, setTotalHouses] = React.useState(0);
   const [total, setTotal]     = React.useState(0);
   const [page, setPage]       = React.useState(1);
@@ -387,6 +388,7 @@ export function AvailabilityPage() {
       const { data } = await axios.get(`/api/availability?year=${y}&month=${m2}`);
       if (data.heatmap) setHeatmap(data.heatmap);
       if (data.houseHeatmap) setHouseMap(data.houseHeatmap);
+      if (data.holidays) setHolidays(data.holidays);
       if (data.totalHouses) setTotalHouses(data.totalHouses);
       if (data.lastSyncAt) setLastSyncAt(data.lastSyncAt);
     } catch { /* ignore */ }
@@ -416,15 +418,43 @@ export function AvailabilityPage() {
     setPage(1);
   };
 
-  const handleDateClick = async (hId: string, dateStr: string) => {
-    setPopupData({ hId, date: dateStr, loading: true });
-    try {
-      const { data } = await axios.get(`/api/houses/${hId}/date-info?date=${dateStr}`);
-      setPopupData({ ...data, loading: false });
-    } catch(e) {
-      alert("ไม่สามารถโหลดข้อมูลได้");
-      setPopupData(null);
+  const handleDateClick = (hId: string, dateStr: string) => {
+    const house = houses.find(h => h.hId === hId);
+    if (!house) return;
+
+    const dayStart = new Date(dateStr + "T00:00:00.000Z");
+    const dayOfWeek = dayStart.getUTCDay();
+
+    const detail = (house as any).detail;
+    const basePrice = (house as any).basePrices?.[0];
+    const status = houseMap[hId]?.[dateStr] || "free";
+
+    let currentPrice = house.price;
+    let oldPrice = null;
+    let people = house.people;
+
+    if (basePrice) {
+      const prices = [basePrice.priceSun, basePrice.priceMon, basePrice.priceTue, basePrice.priceWed, basePrice.priceThu, basePrice.priceFri, basePrice.priceSat];
+      if (prices[dayOfWeek] > 0) currentPrice = prices[dayOfWeek];
     }
+
+    if (status === "hotpro" || status === "holiday") {
+      const hday = holidays.find(h => h.houseId === hId && dateStr >= h.start.slice(0, 10) && dateStr <= h.end.slice(0, 10));
+      if (hday) {
+        if (status === "hotpro") oldPrice = currentPrice;
+        currentPrice = hday.price;
+        people = hday.people || people;
+      }
+    }
+
+    setPopupData({
+      hId, date: dateStr, status, price: currentPrice, oldPrice, people,
+      extraAdult: detail?.extra || 0,
+      extraChild: detail?.extraChild || 0,
+      extraPet: detail?.extraPet || 0,
+      petFriendly: house.pet,
+      loading: false
+    });
   };
 
   const clearFilters = () => {
