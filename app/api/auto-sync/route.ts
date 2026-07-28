@@ -1,6 +1,6 @@
-// app/api/cron/sync/route.ts
+// app/api/auto-sync/route.ts
 // ──────────────────────────────────────────────────────────────────────────────
-// Vercel Cron Job + Manual sync endpoint
+// Cron endpoint — ตอบ 200 ทันที แล้วค่อย sync เบื้องหลัง
 // ──────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from "next/server";
 import { runBulkSync } from "@/lib/services/sync.service";
@@ -8,34 +8,34 @@ import { runBulkSync } from "@/lib/services/sync.service";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export async function POST(req: NextRequest) {
-  return runSync(req);
+const hardcodedSecret = "pool-villa-sync-2024-secret";
+
+function isAuthorized(req: NextRequest): boolean {
+  const envSecret = process.env.CRON_SECRET;
+  const auth = req.headers.get("authorization") ?? req.nextUrl.searchParams.get("secret");
+  const token = auth?.replace("Bearer ", "").trim();
+  return token === envSecret || token === hardcodedSecret;
 }
 
 export async function GET(req: NextRequest) {
-  return runSync(req);
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // ตอบ 200 ทันที ไม่รอให้ sync เสร็จ
+  const res = NextResponse.json({ success: true, message: "Sync started in background" });
+  
+  // ทำ sync เบื้องหลัง (fire-and-forget)
+  runBulkSync(20).catch(e => console.error("[auto-sync] error:", e));
+  
+  return res;
 }
 
-async function runSync(req: NextRequest) {
-  // Optional auth for GET requests from external cron services
-  const envSecret = process.env.CRON_SECRET;
-  const hardcodedSecret = "pool-villa-sync-2024-secret";
-  
-  if (req.method === "GET") {
-    const auth = req.headers.get("authorization") ?? req.nextUrl.searchParams.get("secret");
-    const token = auth?.replace("Bearer ", "");
-    
-    // Check against both env and hardcoded secret
-    if (token !== envSecret && token !== hardcodedSecret) {
-      return NextResponse.json({ error: "Unauthorized", received: token || "none" }, { status: 401 });
-    }
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  try {
-    const result = await runBulkSync(10);
-    return NextResponse.json({ success: true, ...result });
-  } catch (error: any) {
-    console.error("[cron/sync] Fatal error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  const res = NextResponse.json({ success: true, message: "Sync started in background" });
+  runBulkSync(20).catch(e => console.error("[auto-sync] error:", e));
+  return res;
 }
