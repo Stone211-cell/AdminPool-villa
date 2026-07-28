@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncOneHouse } from "@/lib/services/sync.service";
 import { fetchAllHouses } from "@/lib/external/poolvilla.api";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -27,8 +28,18 @@ export async function POST(
     );
 
     if (!rh) {
+      // House no longer exists in remote API, auto-delete from our DB
+      try {
+        await prisma.basePrice.deleteMany({ where: { houseId: hId } });
+        await prisma.booking.deleteMany({ where: { houseId: hId } });
+        await prisma.holiday.deleteMany({ where: { houseId: hId } });
+        await prisma.houseDetail.deleteMany({ where: { houseId: hId } });
+        await prisma.house.delete({ where: { hId: hId } });
+      } catch (e) {
+        console.error(`Failed to delete orphaned house ${hId}:`, e);
+      }
       return NextResponse.json(
-        { error: `ไม่พบบ้าน CITY-${hId} ใน API` },
+        { error: `บ้าน CITY-${hId} ถูกลบออกจากระบบต้นทางแล้ว (ระบบจัดการลบออกจากฐานข้อมูลให้แล้ว)` },
         { status: 404 }
       );
     }
