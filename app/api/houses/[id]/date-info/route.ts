@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const hId = params.id;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const hId = (await params).id;
   const dateStr = req.nextUrl.searchParams.get("date");
   if (!dateStr) return NextResponse.json({ error: "Missing date" }, { status: 400 });
 
