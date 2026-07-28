@@ -45,9 +45,9 @@ function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month:
         <button onClick={(e) => { e.preventDefault(); setOff(o => Math.min(2, o + 1)); }} disabled={off === 2}
           className="w-7 h-7 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-30 text-sm font-bold flex items-center justify-center">›</button>
       </div>
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-0.5 md:gap-1">
         {THAI_DAYS.map((d, i) => (
-          <div key={d} className={`text-center text-[9px] font-bold py-0.5 ${i===0||i===6?"text-red-400":"text-gray-500"}`}>{d}</div>
+          <div key={d} className={`text-center text-[10px] md:text-xs font-bold py-0.5 ${i===0||i===6?"text-red-400":"text-gray-500"}`}>{d}</div>
         ))}
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
@@ -56,7 +56,7 @@ function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month:
           const isWknd = i % 7 === 0 || i % 7 === 6;
           return (
             <div key={key} title={st.label}
-              className={`aspect-square flex items-center justify-center text-[10px] font-semibold rounded-sm border ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""}`}>
+              className={`aspect-square flex items-center justify-center text-[11px] md:text-sm font-semibold rounded-sm border ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""}`}>
               {day}
             </div>
           );
@@ -147,32 +147,32 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
       {/* Info */}
       <div className="flex flex-col gap-3 p-4 flex-1">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5 md:gap-2">
           {[
             { icon: "🛏", val: bed, label: "ห้องนอน" },
             { icon: "🚿", val: bath, label: "ห้องน้ำ" },
             { icon: "👥", val: ppl || "?", label: "คนสูงสุด" },
           ].map(({ icon, val, label }) => (
-            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-xl py-2 border border-gray-800">
-              <span className="text-lg">{icon}</span>
-              <span className="font-bold text-white text-base leading-none">{val}</span>
-              <span className="text-gray-500 text-[10px] mt-0.5">{label}</span>
+            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-xl py-2 md:py-3 border border-gray-800">
+              <span className="text-xl md:text-2xl">{icon}</span>
+              <span className="font-bold text-white text-base md:text-lg leading-none mt-1">{val}</span>
+              <span className="text-gray-500 text-[11px] md:text-sm mt-0.5">{label}</span>
             </div>
           ))}
         </div>
 
         {/* Amenities */}
         {amenities.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 md:gap-2">
             {amenities.slice(0, 4).map(a => (
-              <span key={a} className="text-[10px] text-gray-400 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">{a}</span>
+              <span key={a} className="text-[11px] md:text-sm text-gray-400 bg-gray-800/60 border border-gray-700 px-2 md:px-3 py-0.5 md:py-1 rounded-full">{a}</span>
             ))}
-            {amenities.length > 4 && <span className="text-[10px] text-gray-500 px-2 py-0.5">+{amenities.length - 4}</span>}
+            {amenities.length > 4 && <span className="text-[11px] md:text-sm text-gray-500 px-2 md:px-3 py-0.5 md:py-1">+{amenities.length - 4}</span>}
           </div>
         )}
 
-        {/* Mini Calendar (only when no date selected) */}
-        {!selectedDate && <MiniCalendar hMap={hMap} month={month} />}
+        {/* Mini Calendar (always show) */}
+        <MiniCalendar hMap={hMap} month={month} />
 
         {/* Price + Buttons */}
         <div className="mt-auto pt-2 border-t border-gray-800">
@@ -182,16 +182,16 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
               <span className="text-gray-600 text-xs ml-1">/คืน</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 mt-3">
             <button onClick={handleSync} disabled={syncing}
-              className={`h-9 flex items-center justify-center gap-1 text-[11px] font-bold rounded-xl border transition-all
+              className={`h-10 flex items-center justify-center gap-1 text-xs md:text-sm font-bold rounded-xl border transition-all
                 ${syncDone ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                 : syncing ? "bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse cursor-wait"
                 : "bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/25 hover:text-white cursor-pointer"}`}>
               {syncDone ? "✅ อัพเดทแล้ว" : syncing ? "⏳ กำลังอัพ..." : "🔄 อัพเดทก่อนดู"}
             </button>
             <a href={detailUrl} target="_blank" rel="noopener noreferrer"
-              className="h-9 flex items-center justify-center text-sm font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
+              className="h-10 flex items-center justify-center text-sm md:text-base font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
               ดูรายละเอียด →
             </a>
           </div>
