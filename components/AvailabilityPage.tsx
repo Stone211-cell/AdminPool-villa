@@ -278,8 +278,8 @@ function GlobalSyncButton({ lastSyncAt, onSync }: { lastSyncAt: string|null; onS
   const handle = async () => {
     setSyncing(true); setMsg(null);
     try {
-      const r = await axios.post("/api/cron/sync", {}, { timeout: 120000 });
-      setMsg({ type: "ok", text: `✅ sync ${r.data.synced} หลัง` });
+      const r = await axios.post("/api/auto-sync?secret=pool-villa-sync-2024-secret", {}, { timeout: 120000 });
+      setMsg({ type: "ok", text: `✅ ${r.data.message}` });
       onSync();
     } catch (e: any) {
       setMsg({ type: "err", text: `❌ ${e?.response?.data?.error || "error"}` });

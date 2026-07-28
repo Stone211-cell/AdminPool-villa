@@ -13,15 +13,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const dayEnd = new Date(dateStr + "T23:59:59.999Z");
     const dayOfWeek = dayStart.getUTCDay(); // 0 = Sun, 1 = Mon...
 
-    const [house, detail, basePrice, bookings, holidays] = await Promise.all([
-      prisma.house.findUnique({ where: { hId } }),
-      prisma.houseDetail.findUnique({ where: { houseId: hId } }),
-      prisma.basePrice.findUnique({ where: { houseId: hId } }),
-      prisma.booking.findMany({ where: { houseId: hId, checkIn: { lt: dayEnd }, checkOut: { gt: dayStart } } }),
-      prisma.holiday.findMany({ where: { houseId: hId, start: { lte: dayEnd }, end: { gte: dayStart } } })
-    ]);
+    const house = await prisma.house.findUnique({
+      where: { hId },
+      include: {
+        detail: true,
+        basePrices: true,
+        bookings: { where: { checkIn: { lt: dayEnd }, checkOut: { gt: dayStart } } },
+        holidays: { where: { start: { lte: dayEnd }, end: { gte: dayStart } } }
+      }
+    });
 
     if (!house) return NextResponse.json({ error: "House not found" }, { status: 404 });
+
+    const detail = house.detail;
+    const basePrice = house.basePrices[0];
+    const bookings = house.bookings;
+    const holidays = house.holidays;
 
     // Determine Status
     let status = "free";
