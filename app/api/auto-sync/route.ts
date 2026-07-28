@@ -32,7 +32,7 @@ async function runSync(req: NextRequest) {
   }
 
   try {
-    const result = await runBulkSync(50);
+    const result = await runBulkSync(10);
     return NextResponse.json({ success: true, ...result });
   } catch (error: any) {
     console.error("[cron/sync] Fatal error:", error);
