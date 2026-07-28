@@ -137,7 +137,11 @@ export async function GET(req: NextRequest) {
         else statusMap.set(b.houseId, "booked");
       }
 
-      const withStatus = allHouses.map(h => ({ ...h, dayStatus: statusMap.get(h.hId) || "free" }));
+      const withStatus = allHouses.map(h => ({ 
+        ...h, 
+        dayStatus: statusMap.get(h.hId) || "free",
+        imgName: h.imgName?.replace('https://poolvillacity.co.th', 'https://sgp1.digitaloceanspaces.com/villapaza-spaces') 
+      }));
       const skip = (page - 1) * limit;
       const paginated = withStatus.slice(skip, skip + limit);
 
@@ -151,12 +155,15 @@ export async function GET(req: NextRequest) {
     const total = await prisma.house.count({ where: houseWhere });
     const skip = (page - 1) * limit;
 
-    const houses = await prisma.house.findMany({
+    const houses = (await prisma.house.findMany({
       where: houseWhere,
       orderBy: { updatedAt: "desc" },  // Most recently synced first
       skip,
       take: limit,
-    });
+    })).map(h => ({
+      ...h,
+      imgName: h.imgName?.replace('https://poolvillacity.co.th', 'https://sgp1.digitaloceanspaces.com/villapaza-spaces')
+    }));
 
     return NextResponse.json(
       { houses, dbMode: true, total, totalHouses, lastSyncAt, page, hasMore: skip + limit < total },
