@@ -132,10 +132,26 @@ export async function runBulkSync(limit = 50): Promise<{
 }> {
   const remoteHouses = await fetchAllHouses(2000);
 
-  // Sort: new houses first, then oldest updated
+  // Auto-delete houses that no longer exist in the source API
+  const activeIds = new Set(remoteHouses.map(h => (h.code || "").replace("CITY-", "")));
   const dbHouses = await prisma.house.findMany({
     select: { hId: true, updatedAt: true },
   });
+
+  const toDelete = dbHouses.filter(h => !activeIds.has(h.hId)).map(h => h.hId);
+  if (toDelete.length > 0) {
+    console.log("Deleting orphaned houses:", toDelete.length);
+    try {
+      await prisma.basePrice.deleteMany({ where: { houseId: { in: toDelete } } });
+      await prisma.booking.deleteMany({ where: { houseId: { in: toDelete } } });
+      await prisma.holiday.deleteMany({ where: { houseId: { in: toDelete } } });
+      await prisma.houseDetail.deleteMany({ where: { houseId: { in: toDelete } } });
+      await prisma.house.deleteMany({ where: { hId: { in: toDelete } } });
+    } catch (e) {
+      console.error("Error deleting orphaned houses:", e);
+    }
+  }
+
   const dbMap = new Map(dbHouses.map((h) => [h.hId, h.updatedAt.getTime()]));
 
   remoteHouses.sort((a, b) => {
