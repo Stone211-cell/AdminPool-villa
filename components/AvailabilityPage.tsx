@@ -47,7 +47,7 @@ function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DaySt
       </div>
       <div className="grid grid-cols-7 gap-1 md:gap-1.5">
         {THAI_DAYS.map((d, i) => (
-          <div key={d} className={`text-center text-xs md:text-sm font-bold py-1 ${i===0||i===6?"text-red-400":"text-gray-400"}`}>{d}</div>
+          <div key={d} className={`text-center text-xs md:text-[15px] font-bold py-1.5 ${i===0||i===6?"text-red-400":"text-gray-400"}`}>{d}</div>
         ))}
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
@@ -56,7 +56,7 @@ function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DaySt
           const isWknd = i % 7 === 0 || i % 7 === 6;
           return (
             <button key={key} title={st.label} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDateClick?.(key); }}
-              className={`aspect-square flex items-center justify-center text-xs md:text-base font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-border" : ""}`}>
+              className={`aspect-square flex items-center justify-center text-sm md:text-lg font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-border" : ""}`}>
               {day}
             </button>
           );
@@ -460,24 +460,8 @@ export function AvailabilityPage() {
 
           <div className="flex items-center gap-3">
             <GlobalSyncButton lastSyncAt={lastSyncAt} onSync={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); }} />
-            {/* Mobile menu button */}
-            <button onClick={() => setMobileMenu(v => !v)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-gray-800 border border-gray-700 text-gray-300">
-              {mobileMenu ? "✕" : "☰"}
-            </button>
           </div>
         </div>
-
-        {/* Mobile search dropdown */}
-        {mobileMenu && (
-          <div className="md:hidden border-t border-gray-800 bg-[#0f1219] px-4 py-4 flex flex-col gap-3">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                placeholder="ค้นหาเลขห้อง เช่น 293"
-                className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500" />
-              <button type="submit" className="px-4 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-sm">ค้นหา</button>
-            </form>
-          </div>
-        )}
       </header>
 
       {/* ── MAIN ───────────────────────────────────────────────────────── */}
@@ -631,7 +615,7 @@ export function AvailabilityPage() {
 
               {/* Cards */}
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
                   {Array.from({length: 6}).map((_, i) => (
                     <div key={i} className="h-[420px] rounded-2xl bg-[#1a1e29] animate-pulse border border-gray-800" />
                   ))}
@@ -647,7 +631,7 @@ export function AvailabilityPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
                     {houses.map(h => (
                       <HouseCard key={h.hId} house={h} selectedDate={sel}
                         houseHeatmap={houseMap} month={month}
@@ -687,8 +671,8 @@ export function AvailabilityPage() {
           </button>
           <button onClick={() => setMobileMenu(v => !v)}
             className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${mobileMenu ? "text-emerald-400" : "text-gray-500"}`}>
-            <span className="text-2xl">⚙️</span>
-            <span className="text-[10px] font-bold">กรอง{activeFilters > 0 ? ` (${activeFilters})` : ""}</span>
+            <span className="text-2xl">☰</span>
+            <span className="text-[10px] font-bold">เมนู & กรอง</span>
           </button>
         </div>
       </nav>
@@ -710,6 +694,13 @@ export function AvailabilityPage() {
                 className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-4 py-3 text-base text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500" />
               <button type="submit" className="px-4 bg-emerald-600 text-white font-bold rounded-xl">🔍</button>
             </form>
+
+            <div className="w-full h-px bg-gray-800 my-1"></div>
+
+            <button onClick={() => { handleBulkSync(); setMobileMenu(false); }} disabled={isSyncing}
+              className="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors border border-gray-700 whitespace-nowrap shadow-md">
+              {isSyncing ? <><span className="animate-spin inline-block">⟳</span> กำลังซิงค์...</> : "🔄 ซิงค์อัพเดทข้อมูลทั้งหมด"}
+            </button>
 
             <div>
               <label className="text-sm font-bold text-gray-400 mb-2 block">🛏 ห้องนอน</label>
