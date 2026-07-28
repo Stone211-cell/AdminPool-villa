@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let status = "free";
     let currentPrice = house.price;
     let oldPrice = null;
-    
+
     // Calculate Base Price for the day
     if (basePrice) {
       const prices = [
