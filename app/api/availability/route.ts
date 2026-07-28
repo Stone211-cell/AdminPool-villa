@@ -64,13 +64,26 @@ export async function GET(req: NextRequest) {
       const houseHeatmap: Record<string, Record<string, DayStatus>> = {};
 
       const cur = new Date(monthStart);
+      
+      // Pre-calculate timestamps for fast filtering
+      const fastBookings = bookings.map(b => ({
+        ...b,
+        startTs: new Date(b.checkIn).getTime(),
+        endTs: new Date(b.checkOut).getTime()
+      }));
+      const fastHolidays = holidays.map(h => ({
+        ...h,
+        startTs: new Date(h.start).getTime(),
+        endTs: new Date(h.end).getTime()
+      }));
+
       while (cur <= monthEnd) {
-        const dayStart = new Date(cur);
-        const dayEnd   = new Date(cur); dayEnd.setUTCHours(23, 59, 59, 999);
+        const dayStart = cur.getTime();
+        const dayEnd   = dayStart + 86399999; // 23:59:59.999
         const key = cur.toISOString().slice(0, 10);
 
-        const dayBookings  = bookings.filter(b => new Date(b.checkIn) < dayEnd && new Date(b.checkOut) > dayStart);
-        const dayHolidays  = holidays.filter(h => new Date(h.start) <= dayEnd && new Date(h.end) >= dayStart);
+        const dayBookings  = fastBookings.filter(b => b.startTs < dayEnd && b.endTs > dayStart);
+        const dayHolidays  = fastHolidays.filter(h => h.startTs <= dayEnd && h.endTs >= dayStart);
 
         const bookedSet    = new Set(dayBookings.filter(b => b.bookType === "deville" || b.bookType === "owner").map(b => b.houseId));
         const waitingSet   = new Set(dayBookings.filter(b => b.bookType === "waiting").map(b => b.houseId));
