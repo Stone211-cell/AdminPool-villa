@@ -27,7 +27,7 @@ const thaiDateTime = (iso: string | null) => {
 };
 
 // ─── Mini Calendar (per house) ────────────────────────────────────────────────
-function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month: Date }) {
+function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DayStatus>; month: Date; onDateClick?: (date: string) => void }) {
   const [off, setOff] = React.useState(0);
   const base = new Date(month.getFullYear(), month.getMonth() + off, 1);
   const y = base.getFullYear(), m = base.getMonth();
@@ -55,10 +55,10 @@ function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month:
           const st = STATUS[hMap[key] || "free"];
           const isWknd = i % 7 === 0 || i % 7 === 6;
           return (
-            <div key={key} title={st.label}
-              className={`aspect-square flex items-center justify-center text-xs md:text-base font-bold rounded-md border shadow-sm ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""}`}>
+            <button key={key} title={st.label} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDateClick?.(key); }}
+              className={`aspect-square flex items-center justify-center text-xs md:text-base font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-border" : ""}`}>
               {day}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -67,10 +67,11 @@ function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month:
 }
 
 // ─── House Card ───────────────────────────────────────────────────────────────
-function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
+function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateClick }: {
   house: House; selectedDate: Date|null;
   houseHeatmap: Record<string, Record<string, DayStatus>>;
   month: Date; onSynced?: () => void;
+  onDateClick?: (hId: string, date: string) => void;
 }) {
   const hId    = house.hId || house.h_id || "";
   const price  = parseInt(house.price || "0");
@@ -172,7 +173,9 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
         )}
 
         {/* Mini Calendar (always show) */}
-        <MiniCalendar hMap={hMap} month={month} />
+        <div className="mt-4">
+          <MiniCalendar hMap={hMap} month={month} onDateClick={(d) => onDateClick?.(hId, d)} />
+        </div>
 
         {/* Price + Buttons */}
         <div className="mt-auto pt-4 border-t border-gray-800">
@@ -348,6 +351,9 @@ export function AvailabilityPage() {
   const [maxPrice, setMaxPrice] = React.useState<number|null>(null);
   const [swim, setSwim]       = React.useState<""|"salt"|"chlorine">("");
   const [mobileMenu, setMobileMenu] = React.useState(false);
+  
+  // Popup state
+  const [popupData, setPopupData] = React.useState<any>(null);
   const LIMIT = 12;
 
   // ── Fetch houses ─────────────────────────────────────────────────────────
@@ -408,6 +414,17 @@ export function AvailabilityPage() {
     e.preventDefault();
     setSearch(searchInput.trim());
     setPage(1);
+  };
+
+  const handleDateClick = async (hId: string, dateStr: string) => {
+    setPopupData({ hId, date: dateStr, loading: true });
+    try {
+      const { data } = await axios.get(`/api/houses/${hId}/date-info?date=${dateStr}`);
+      setPopupData({ ...data, loading: false });
+    } catch(e) {
+      alert("ไม่สามารถโหลดข้อมูลได้");
+      setPopupData(null);
+    }
   };
 
   const clearFilters = () => {
@@ -589,16 +606,6 @@ export function AvailabilityPage() {
                     <button onClick={() => setSel(null)} className="text-xs text-red-400 mt-1 hover:text-red-300">ยกเลิก</button>
                   </div>
                 )}
-
-                {/* Calendar: month nav */}
-                <div>
-                  <label className="text-xs font-bold text-gray-400 mb-2 block">🗓️ เดือนปฏิทิน (mini)</label>
-                  <div className="flex items-center justify-between">
-                    <button onClick={() => navM(-1)} className="px-2 py-1 rounded-lg bg-gray-800 text-white text-xs font-bold border border-gray-700 hover:bg-gray-700">‹</button>
-                    <span className="text-xs text-gray-300 font-bold">{THAI_MONTHS[month.getMonth()]} {month.getFullYear() + 543}</span>
-                    <button onClick={() => navM(1)}  className="px-2 py-1 rounded-lg bg-gray-800 text-white text-xs font-bold border border-gray-700 hover:bg-gray-700">›</button>
-                  </div>
-                </div>
               </div>
             </aside>
 
@@ -644,6 +651,7 @@ export function AvailabilityPage() {
                     {houses.map(h => (
                       <HouseCard key={h.hId} house={h} selectedDate={sel}
                         houseHeatmap={houseMap} month={month}
+                        onDateClick={handleDateClick}
                         onSynced={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); }} />
                     ))}
                   </div>
@@ -738,6 +746,65 @@ export function AvailabilityPage() {
           </div>
         </div>
       )}
+
+      {/* Date Popup Modal */}
+      {popupData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-[320px] text-center flex flex-col items-center gap-2 relative border border-gray-200">
+            <h2 className="text-xl font-black text-gray-800 font-sans tracking-wide">CITY-{popupData.hId}</h2>
+            <p className="text-gray-600 text-sm font-medium mb-1">
+              {(() => {
+                const [y, m, d] = popupData.date.split("-");
+                return `${parseInt(d)}/${parseInt(m)}/${parseInt(y)+543}`;
+              })()}
+            </p>
+            
+            {popupData.loading ? (
+              <div className="py-8"><span className="animate-spin text-3xl block text-gray-400">⟳</span></div>
+            ) : (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                {popupData.status === "hotpro" && popupData.oldPrice ? (
+                  <>
+                    <p className="text-red-600 font-bold text-base line-through">ลดราคาจาก {popupData.oldPrice.toLocaleString()} / {popupData.people} ท่าน</p>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <p className="text-[#f26522] font-extrabold text-[1.1rem]">
+                        ลดราคาเหลือ {popupData.price?.toLocaleString()} บาท / {popupData.people} ท่าน
+                      </p>
+                      <button className="text-gray-400 hover:text-[#f26522] transition-colors" title="คัดลอกราคา" onClick={() => navigator.clipboard.writeText(popupData.price?.toString()||"")}>📋</button>
+                    </div>
+                  </>
+                ) : popupData.status === "holiday" || popupData.status === "free" ? (
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <p className="text-[#f26522] font-extrabold text-[1.1rem]">
+                      {popupData.price?.toLocaleString()} บาท / {popupData.people} ท่าน
+                    </p>
+                    <button className="text-gray-400 hover:text-[#f26522] transition-colors" title="คัดลอกราคา" onClick={() => navigator.clipboard.writeText(popupData.price?.toString()||"")}>📋</button>
+                  </div>
+                ) : (
+                  <p className={`font-extrabold text-lg mb-3 tracking-wide
+                    ${popupData.status === "booked" ? "text-red-600" : popupData.status === "repair" ? "text-gray-500" : "text-[#f26522]"}`}>
+                    {popupData.status === "booked" ? "ติดจอง" : popupData.status === "repair" ? "ปิดปรับปรุง" : "รอชำระ"}
+                  </p>
+                )}
+
+                {(popupData.status === "hotpro" || popupData.status === "holiday" || popupData.status === "free") && (
+                  <div className="text-[11px] text-gray-500 font-medium flex flex-col gap-0.5 mt-1 border-t border-gray-100 pt-3">
+                    <p>เสริมผู้ใหญ่ท่านละ {popupData.extraAdult} บาท/คืน</p>
+                    <p>เสริมเด็กท่านละ {popupData.extraChild} บาท/คืน</p>
+                    {popupData.petFriendly && <p>เสริมสัตว์เลี้ยงตัวละ {popupData.extraPet} บาท/คืน</p>}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <button onClick={() => setPopupData(null)} 
+              className="mt-4 w-full py-2.5 bg-[#f00] hover:bg-[#d00] text-white font-bold rounded-lg transition-colors">
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
