@@ -29,16 +29,16 @@ export function Navbar() {
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center gap-2">
               <div className="text-3xl font-black tracking-tighter text-[#1f2937]">
-                <span className="text-[#5b51fb]">V</span>ILLA DD
+                <span className="text-[#ff758f]">P</span>OOL VILLA
               </div>
             </Link>
           </div>
 
           {/* Center Links (Desktop) */}
           <div className="hidden md:flex space-x-8">
-            <Link href="/" className="text-sm font-semibold text-gray-700 hover:text-[#5b51fb] transition-colors">{t("home")}</Link>
-            <Link href="#" className="text-sm font-semibold text-gray-400 hover:text-[#5b51fb] transition-colors">{t("article")}</Link>
-            <Link href="/contact" className="text-sm font-semibold text-gray-400 hover:text-[#5b51fb] transition-colors">{t("contact")}</Link>
+            <Link href="/" className="text-sm font-semibold text-gray-700 hover:text-[#ff758f] transition-colors">{t("home")}</Link>
+            <Link href="#" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("article")}</Link>
+            <Link href="/contact" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("contact")}</Link>
           </div>
 
           {/* Right Section */}

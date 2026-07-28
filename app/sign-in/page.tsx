@@ -47,18 +47,18 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex w-full bg-white font-sans text-gray-800">
       {/* Left Side: Branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-center px-20 bg-gradient-to-br from-[#f8f9ff] to-[#ffffff] relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 flex-col justify-center px-20 bg-gradient-to-br from-[#fff5f8] to-[#ffffff] relative overflow-hidden">
         {/* Subtle background waves/curves could go here */}
         <div className="absolute inset-0 pointer-events-none" style={{
-            backgroundImage: "radial-gradient(circle at -20% 50%, #e0e7ff 0%, transparent 50%)"
+            backgroundImage: "radial-gradient(circle at -20% 50%, #ffe4e8 0%, transparent 50%)"
         }}></div>
         <div className="z-10">
           <h1 className="text-5xl font-black mb-4 tracking-tight">
             เข้าสู่ระบบ<br/>
-            <span className="text-blue-500">Villa DD</span>
+            <span className="text-[#ff758f]">POOL VILLA</span>
           </h1>
           <p className="text-gray-500 max-w-sm mt-8 leading-relaxed">
-            แพลตฟอร์มรับลงบ้านพักพูลวิลล่าให้เช่า ตามไลฟ์สไตล์ ที่คุณว่าใช่ สะดวก ปลอดภัย ปิดดีลสบายๆ กับ Villa DD คุณจะได้อะไรที่มากกว่า
+            แพลตฟอร์มรับลงบ้านพักพูลวิลล่าให้เช่า ตามไลฟ์สไตล์ ที่คุณว่าใช่ สะดวก ปลอดภัย ปิดดีลสบายๆ กับ POOL VILLA คุณจะได้อะไรที่มากกว่า
           </p>
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function SignInPage() {
             <input
               type="email"
               placeholder="กรุณากรอกอีเมล"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff758f] focus:border-transparent transition-all"
               value={emailAddress}
               onChange={(e) => setEmailAddress(e.target.value)}
               required
@@ -89,7 +89,7 @@ export default function SignInPage() {
               <input
                 type="password"
                 placeholder="กรุณากรอกรหัสผ่าน"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#ff758f] focus:border-transparent transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -102,17 +102,17 @@ export default function SignInPage() {
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" />
+              <input type="checkbox" className="w-4 h-4 text-[#ff758f] rounded border-gray-300 focus:ring-[#ff758f]" />
               <span className="text-sm text-gray-600">จดจำฉัน</span>
             </label>
-            <a href="#" className="text-sm text-gray-800 font-semibold hover:text-blue-600">
+            <a href="#" className="text-sm text-gray-800 font-semibold hover:text-[#ff758f]">
               ลืมรหัสผ่าน?
             </a>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-[#5b51fb] hover:bg-[#4b42e6] text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-blue-500/30"
+            className="w-full bg-[#ff758f] hover:bg-[#ff5c77] text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-pink-500/30"
           >
             เข้าสู่ระบบ
           </button>
@@ -143,11 +143,11 @@ export default function SignInPage() {
         </form>
 
         {/* Floating Policy box at bottom */}
-        <div className="absolute bottom-8 left-8 right-8 lg:left-32 lg:right-32 bg-[#5b51fb] text-white p-4 rounded-xl flex items-center justify-between shadow-xl">
+        <div className="absolute bottom-8 left-8 right-8 lg:left-32 lg:right-32 bg-[#ff758f] text-white p-4 rounded-xl flex items-center justify-between shadow-xl">
           <p className="text-xs sm:text-sm max-w-[80%] leading-relaxed">
             เว็บไซต์นี้ใช้คุกกี้ เราใช้คุกกี้เพื่อให้ท่านได้รับประสบการณ์การใช้งานที่ดีที่สุดบนเว็บไซต์ของเรา โปรดศึกษาเพิ่มเติมที่ <a href="#" className="underline font-semibold">นโยบายความเป็นส่วนตัว</a> และ <a href="#" className="underline font-semibold">ข้อกำหนดและเงื่อนไขการใช้บริการ</a>
           </p>
-          <button className="bg-white text-[#5b51fb] px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-gray-50 transition-colors">
+          <button className="bg-white text-[#ff758f] px-4 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-pink-50 transition-colors">
             ยอมรับ
           </button>
         </div>
