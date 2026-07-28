@@ -1,68 +1,66 @@
 // app/api/availability/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { fetchHouses } from "@/lib/api/houses";
 
 export const dynamic = "force-dynamic";
-
-// สถานะวัน (เหมือนต้นฉบับ)
-// "booked"  = ติดจอง (deville, owner)
-// "waiting" = รอโอน
-// "repair"  = ปิดซ่อม
-// "holiday" = วันหยุด
-// "hotpro"  = โปรโมชั่น
-// "free"    = ว่าง
 
 type DayStatus = "booked" | "waiting" | "repair" | "holiday" | "hotpro" | "free";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const date  = searchParams.get("date");
-  const year  = searchParams.get("year");
-  const month = searchParams.get("month");
-  const houseId = searchParams.get("houseId");
+  const sp = req.nextUrl.searchParams;
+  const date    = sp.get("date");
+  const year    = sp.get("year");
+  const month   = sp.get("month");
+  const search  = sp.get("search");           // search by hId
+  const page    = parseInt(sp.get("page") || "1");
+  const limit   = parseInt(sp.get("limit") || "12");
+  const bed     = sp.get("bed") ? parseInt(sp.get("bed")!) : null;
+  const maxPrice = sp.get("maxPrice") ? parseInt(sp.get("maxPrice")!) : null;
+  const swim    = sp.get("swim");
+  const houseId = sp.get("houseId");
 
   try {
     const totalHouses = await prisma.house.count();
-
-    // ดึง lastSyncAt จาก updatedAt ล่าสุดใน DB
-    const lastSyncHouse = await prisma.house.findFirst({ orderBy: { updatedAt: "desc" }, select: { updatedAt: true } });
+    const lastSyncHouse = await prisma.house.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    });
     const lastSyncAt = lastSyncHouse?.updatedAt?.toISOString() ?? null;
 
-    // ── Fallback ─────────────────────────────────────────────────────────────
     if (totalHouses === 0) {
-      const houses = await fetchHouses();
-      return NextResponse.json({ houses, dbMode: false, lastSyncAt }, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        },
-      });
+      return NextResponse.json(
+        { houses: [], dbMode: false, lastSyncAt, total: 0 },
+        { headers: { "Cache-Control": "no-store" } }
+      );
     }
 
-    // ── Calendar heatmap ──────────────────────────────────────────────────────
+    // ── Calendar heatmap (no houses needed) ──────────────────────────────────
     if (year && month) {
       const y = parseInt(year), m = parseInt(month);
       const monthStart = new Date(Date.UTC(y, m - 1, 1));
-      
-      // ดึงข้อมูลเผื่อ 3 เดือนสำหรับให้กดเลื่อนดูในปฏิทินเล็กได้
       const monthEnd   = new Date(Date.UTC(y, m + 2, 0, 23, 59, 59));
 
-      // ดึง bookings และ holidays ทั้งหมดในระยะเวลา
       const [bookings, holidays] = await Promise.all([
         prisma.booking.findMany({
-          where: { checkIn: { lt: monthEnd }, checkOut: { gt: monthStart }, ...(houseId ? { houseId } : {}) },
+          where: {
+            checkIn: { lt: monthEnd },
+            checkOut: { gt: monthStart },
+            ...(houseId ? { houseId } : {}),
+          },
           select: { houseId: true, checkIn: true, checkOut: true, bookType: true },
         }),
         prisma.holiday.findMany({
-          where: { start: { lte: monthEnd }, end: { gte: monthStart }, ...(houseId ? { houseId } : {}) },
+          where: {
+            start: { lte: monthEnd },
+            end:   { gte: monthStart },
+            ...(houseId ? { houseId } : {}),
+          },
           select: { houseId: true, start: true, end: true, type: true },
         }),
       ]);
 
-      // สร้าง dayStatus: { "2026-05-01": { booked:5, waiting:1, repair:2, holiday:3, hotpro:2, free:83 } }
-      const heatmap: Record<string, { booked: number; waiting: number; repair: number; holiday: number; hotpro: number; free: number; available: number }> = {};
-      
-      // สร้าง heatmap แยกรายบ้าน: { "2872": { "2026-05-01": "booked", "2026-05-02": "holiday" } }
+      type DayInfo = { booked: number; waiting: number; repair: number; holiday: number; hotpro: number; free: number; available: number };
+      const heatmap: Record<string, DayInfo> = {};
       const houseHeatmap: Record<string, Record<string, DayStatus>> = {};
 
       const cur = new Date(monthStart);
@@ -71,34 +69,19 @@ export async function GET(req: NextRequest) {
         const dayEnd   = new Date(cur); dayEnd.setUTCHours(23, 59, 59, 999);
         const key = cur.toISOString().slice(0, 10);
 
-        // Booking statuses for this day (per house)
-        const dayBookings = bookings.filter(b =>
-          new Date(b.checkIn) < dayEnd && new Date(b.checkOut) > dayStart
-        );
-        const dayHolidays = holidays.filter(h =>
-          new Date(h.start) <= dayEnd && new Date(h.end) >= dayStart
-        );
+        const dayBookings  = bookings.filter(b => new Date(b.checkIn) < dayEnd && new Date(b.checkOut) > dayStart);
+        const dayHolidays  = holidays.filter(h => new Date(h.start) <= dayEnd && new Date(h.end) >= dayStart);
 
-        const bookedSet   = new Set(dayBookings.filter(b => b.bookType === "deville" || b.bookType === "owner").map(b => b.houseId));
-        const waitingSet  = new Set(dayBookings.filter(b => b.bookType === "waiting").map(b => b.houseId));
-        const repairSet   = new Set(dayBookings.filter(b => b.bookType === "repair").map(b => b.houseId));
-        const holidaySet  = new Set(dayHolidays.filter(h => h.type === "holiday").map(h => h.houseId));
-        const hotproSet   = new Set(dayHolidays.filter(h => h.type === "hotpro").map(h => h.houseId));
+        const bookedSet    = new Set(dayBookings.filter(b => b.bookType === "deville" || b.bookType === "owner").map(b => b.houseId));
+        const waitingSet   = new Set(dayBookings.filter(b => b.bookType === "waiting").map(b => b.houseId));
+        const repairSet    = new Set(dayBookings.filter(b => b.bookType === "repair").map(b => b.houseId));
+        const holidaySet   = new Set(dayHolidays.filter(h => h.type === "holiday").map(h => h.houseId));
+        const hotproSet    = new Set(dayHolidays.filter(h => h.type === "hotpro").map(h => h.houseId));
+        const unavailable  = new Set([...bookedSet, ...waitingSet, ...repairSet]);
+        const available    = totalHouses - unavailable.size;
 
-        const unavailable = new Set([...bookedSet, ...waitingSet, ...repairSet]);
-        const available = totalHouses - unavailable.size;
+        heatmap[key] = { booked: bookedSet.size, waiting: waitingSet.size, repair: repairSet.size, holiday: holidaySet.size, hotpro: hotproSet.size, free: available, available };
 
-        heatmap[key] = {
-          booked:  bookedSet.size,
-          waiting: waitingSet.size,
-          repair:  repairSet.size,
-          holiday: holidaySet.size,
-          hotpro:  hotproSet.size,
-          free:    available,
-          available,
-        };
-        
-        // ใส่ข้อมูลลง houseHeatmap สำหรับบ้านที่มีการจอง/วันหยุด
         for (const hId of bookedSet)  { houseHeatmap[hId] = houseHeatmap[hId] || {}; houseHeatmap[hId][key] = "booked"; }
         for (const hId of waitingSet) { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "waiting"; }
         for (const hId of repairSet)  { houseHeatmap[hId] = houseHeatmap[hId] || {}; if (!houseHeatmap[hId][key]) houseHeatmap[hId][key] = "repair"; }
@@ -108,19 +91,29 @@ export async function GET(req: NextRequest) {
         cur.setUTCDate(cur.getUTCDate() + 1);
       }
 
-      return NextResponse.json({ heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt }, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        },
-      });
+      return NextResponse.json(
+        { heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt },
+        { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+      );
     }
 
-    // ── บ้านว่างในวันที่ระบุ ──────────────────────────────────────────────────
+    // ── House list with optional date filter ─────────────────────────────────
+    // Build where clause for house filtering
+    const houseWhere: any = {};
+    if (search) {
+      const q = search.replace(/city-?/i, "").trim();
+      if (q) houseWhere.hId = { contains: q };
+    }
+    if (bed) houseWhere.hBedroom = bed;
+    if (maxPrice) houseWhere.price = { lte: maxPrice };
+    if (swim) houseWhere.swim = swim;
+
     if (date) {
+      // Houses with status on specific date
       const dayStart = new Date(date + "T00:00:00.000Z");
       const dayEnd   = new Date(date + "T23:59:59.999Z");
 
-      const [bookedRows, holidayRows] = await Promise.all([
+      const [bookedRows, holidayRows, allHouses] = await Promise.all([
         prisma.booking.findMany({
           where: { checkIn: { lt: dayEnd }, checkOut: { gt: dayStart } },
           select: { houseId: true, bookType: true },
@@ -129,61 +122,52 @@ export async function GET(req: NextRequest) {
           where: { start: { lte: dayEnd }, end: { gte: dayStart } },
           select: { houseId: true, type: true },
         }),
+        prisma.house.findMany({ where: houseWhere, orderBy: { price: "asc" } }),
       ]);
 
-      const houses = await prisma.house.findMany({
-        orderBy: { price: "asc" },
-      });
-
-      // Map statuses
-      const houseStatusMap = new Map<string, DayStatus>();
-      for (const h of houses) houseStatusMap.set(h.hId, "free");
-
+      const statusMap = new Map<string, DayStatus>();
+      for (const h of allHouses) statusMap.set(h.hId, "free");
       for (const h of holidayRows) {
-        if (h.type === "hotpro") houseStatusMap.set(h.houseId, "hotpro");
-        else houseStatusMap.set(h.houseId, "holiday");
+        if (h.type === "hotpro") statusMap.set(h.houseId, "hotpro");
+        else statusMap.set(h.houseId, "holiday");
       }
       for (const b of bookedRows) {
-        if (b.bookType === "waiting") houseStatusMap.set(b.houseId, "waiting");
-        else if (b.bookType === "repair") houseStatusMap.set(b.houseId, "repair");
-        else houseStatusMap.set(b.houseId, "booked"); // deville, owner
+        if (b.bookType === "waiting") statusMap.set(b.houseId, "waiting");
+        else if (b.bookType === "repair") statusMap.set(b.houseId, "repair");
+        else statusMap.set(b.houseId, "booked");
       }
 
-      const housesWithStatus = houses.map(h => ({
-        ...h,
-        dayStatus: houseStatusMap.get(h.hId) || "free"
-      }));
+      const withStatus = allHouses.map(h => ({ ...h, dayStatus: statusMap.get(h.hId) || "free" }));
+      const skip = (page - 1) * limit;
+      const paginated = withStatus.slice(skip, skip + limit);
 
-      return NextResponse.json({
-        houses: housesWithStatus,
-        dbMode: true,
-        total: houses.length,
-        date,
-        lastSyncAt,
-      }, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        },
-      });
+      return NextResponse.json(
+        { houses: paginated, dbMode: true, total: allHouses.length, totalHouses, date, lastSyncAt, page, hasMore: skip + limit < allHouses.length },
+        { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+      );
     }
 
-    // ── บ้านทั้งหมด ───────────────────────────────────────────────────────────
+    // ── Default: paginated house list ─────────────────────────────────────────
+    const total = await prisma.house.count({ where: houseWhere });
+    const skip = (page - 1) * limit;
+
     const houses = await prisma.house.findMany({
-      orderBy: { price: "asc" },
-    });
-    return NextResponse.json({ houses, dbMode: true, lastSyncAt }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-      },
+      where: houseWhere,
+      orderBy: { updatedAt: "desc" },  // Most recently synced first
+      skip,
+      take: limit,
     });
 
+    return NextResponse.json(
+      { houses, dbMode: true, total, totalHouses, lastSyncAt, page, hasMore: skip + limit < total },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+    );
+
   } catch (err) {
-    console.error("[availability] DB error, fallback:", err);
-    const houses = await fetchHouses();
-    return NextResponse.json({ houses, dbMode: false, lastSyncAt: null }, {
-      headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-      },
-    });
+    console.error("[availability] DB error:", err);
+    return NextResponse.json(
+      { houses: [], dbMode: false, lastSyncAt: null, total: 0, error: String(err) },
+      { status: 500 }
+    );
   }
 }

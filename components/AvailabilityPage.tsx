@@ -1,105 +1,62 @@
 "use client";
 import * as React from "react";
 import axios from "axios";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { House } from "@/lib/api/houses";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+const THAI_MONTHS = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const THAI_MONTHS_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const THAI_DAYS = ["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
 
-// สีอ้างอิงจากต้นฉบับ
 const STATUS = {
-  booked:  { label: "ติดจอง",     bg: "bg-[#ff0000]",      border: "border-[#ff0000]", text: "text-white" },
-  waiting: { label: "รอชำระ",     bg: "bg-[#ff9900]",      border: "border-[#ff9900]", text: "text-white" },
-  repair:  { label: "ปิดปรับปรุง", bg: "bg-[#808080]",      border: "border-[#808080]", text: "text-white" },
-  holiday: { label: "เทศกาล",     bg: "bg-[#ffee00]",      border: "border-[#ffee00]", text: "text-black" },
-  hotpro:  { label: "ลดราคา",     bg: "bg-[#00d0ff]",      border: "border-[#00d0ff]", text: "text-black" },
-  free:    { label: "ว่าง",       bg: "bg-transparent",    border: "border-gray-700",  text: "text-gray-300" },
+  booked:  { label: "ติดจอง",       bg: "bg-red-600",     border: "border-red-500",    text: "text-white",  dot: "bg-red-500" },
+  waiting: { label: "รอชำระ",       bg: "bg-orange-500",  border: "border-orange-400", text: "text-white",  dot: "bg-orange-400" },
+  repair:  { label: "ปิดปรับปรุง",  bg: "bg-gray-600",    border: "border-gray-500",   text: "text-white",  dot: "bg-gray-400" },
+  holiday: { label: "เทศกาล",       bg: "bg-yellow-500",  border: "border-yellow-400", text: "text-black",  dot: "bg-yellow-400" },
+  hotpro:  { label: "ลดราคา",       bg: "bg-cyan-500",    border: "border-cyan-400",   text: "text-black",  dot: "bg-cyan-400" },
+  free:    { label: "ว่าง",         bg: "bg-transparent", border: "border-gray-700",   text: "text-gray-400", dot: "bg-emerald-500" },
 } as const;
 type DayStatus = keyof typeof STATUS;
-type DayInfo = { booked: number; waiting: number; repair: number; holiday: number; hotpro: number; free: number; available: number };
-type SortKey = "price_asc"|"price_desc"|"bed_asc"|"bed_desc"|"sea_asc"|"sea_desc";
-type SeaFilter = ""|"beach"|"near"|"far";
+type House = Record<string, any>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const yn = (h: any, k: string) => h[k] === true || h[k] === "y";
-const parseSeaKm = (raw: string): number => {
-  if (!raw) return 999;
-  const s = raw.trim().toLowerCase();
-  if (s === "ติดทะเล") return 0;
-  const mM = s.match(/(\d+(?:\.\d+)?)\s*(?:เมตร|ม\.)/);
-  if (mM) return parseFloat(mM[1]) / 1000;
-  const kM = s.match(/(\d+(?:\.\d+)?)\s*(?:กม\.|km|กิโล|กิโลเมตร)/);
-  if (kM) return parseFloat(kM[1]);
-  return 999;
-};
-const seaBadge = (raw: string) => {
-  const km = parseSeaKm(raw);
-  if (km === 0) return { text: "🌊 ติดทะเล", cls: "bg-cyan-900 text-cyan-200 border-cyan-800" };
-  if (km <= 0.5) return { text: `🌊 ${Math.round(km*1000)} ม.`, cls: "bg-blue-900 text-blue-200 border-blue-800" };
-  if (km <= 3) return { text: `🚶 ${km.toFixed(1)} กม.`, cls: "bg-indigo-900 text-indigo-200 border-indigo-800" };
-  if (km < 999) return { text: `🚗 ${km.toFixed(1)} กม.`, cls: "bg-gray-800 text-gray-300 border-gray-700" };
-  return { text: "📍 พัทยา", cls: "bg-gray-800 text-gray-400 border-gray-700" };
-};
-const thaiDate = (d: Date) =>
-  `${d.getDate()} ${THAI_MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()+543}`;
-const thaiDateTime = (iso: string|null) => {
+const thaiDate = (d: Date) => `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear()+543}`;
+const thaiDateTime = (iso: string | null) => {
   if (!iso) return "ยังไม่มีข้อมูล";
-  const d = new Date(iso);
-  return d.toLocaleString("th-TH", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+  return new Date(iso).toLocaleString("th-TH", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
 };
 
-// ─── Mini Calendar ────────────────────────────────────────────────────────────
-function MiniCalendar({ houseId, heatmap, month }: { houseId: string; heatmap: Record<string, DayStatus>; month: Date }) {
-  const [offset, setOffset] = React.useState(0);
-  
-  const y = month.getFullYear(), m = month.getMonth() + offset;
-  // Use Date object to handle year rollover correctly
-  const displayDate = new Date(y, m, 1);
-  const dispY = displayDate.getFullYear();
-  const dispM = displayDate.getMonth();
-
-  const first = new Date(dispY, dispM, 1).getDay();
-  const days  = new Date(dispY, dispM+1, 0).getDate();
-  const cells = [...Array(first).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
+// ─── Mini Calendar (per house) ────────────────────────────────────────────────
+function MiniCalendar({ hMap, month }: { hMap: Record<string, DayStatus>; month: Date }) {
+  const [off, setOff] = React.useState(0);
+  const base = new Date(month.getFullYear(), month.getMonth() + off, 1);
+  const y = base.getFullYear(), m = base.getMonth();
+  const first = new Date(y, m, 1).getDay();
+  const days  = new Date(y, m + 1, 0).getDate();
+  const cells = [...Array(first).fill(null), ...Array.from({length: days}, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const curMonthStr = THAI_MONTHS[dispM] + " " + (dispY+543);
-
   return (
-    <div className="bg-[#1a1e29] border border-gray-800 rounded-xl p-3 mt-3">
-      <div className="flex items-center justify-between mb-3 px-1">
-        <button onClick={(e) => { e.preventDefault(); setOffset(o => Math.max(0, o - 1)); }} disabled={offset === 0}
-          className={`px-2 py-1 rounded bg-gray-800 text-xs font-bold ${offset === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-700 text-white"}`}>
-          ‹
-        </button>
-        <div className="text-center font-bold text-gray-200 text-sm">{curMonthStr}</div>
-        <button onClick={(e) => { e.preventDefault(); setOffset(o => Math.min(2, o + 1)); }} disabled={offset === 2}
-          className={`px-2 py-1 rounded bg-gray-800 text-xs font-bold ${offset === 2 ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-700 text-white"}`}>
-          ›
-        </button>
+    <div className="bg-[#1a1e29] rounded-xl p-3 border border-gray-800">
+      <div className="flex items-center justify-between mb-2">
+        <button onClick={(e) => { e.preventDefault(); setOff(o => Math.max(0, o - 1)); }} disabled={off === 0}
+          className="w-7 h-7 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-30 text-sm font-bold flex items-center justify-center">‹</button>
+        <span className="text-xs font-bold text-gray-300">{THAI_MONTHS_FULL[m]} {y + 543}</span>
+        <button onClick={(e) => { e.preventDefault(); setOff(o => Math.min(2, o + 1)); }} disabled={off === 2}
+          className="w-7 h-7 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 disabled:opacity-30 text-sm font-bold flex items-center justify-center">›</button>
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {THAI_DAYS.map((d, i) => (
-          <div key={d} className={`text-center text-[11px] font-bold py-1 ${i===0||i===6 ? "text-red-400" : "text-gray-400"}`}>{d}</div>
+          <div key={d} className={`text-center text-[9px] font-bold py-0.5 ${i===0||i===6?"text-red-400":"text-gray-500"}`}>{d}</div>
         ))}
         {cells.map((day, i) => {
-          if (!day) return <div key={`e${i}`} className="aspect-square" />;
-          const key = `${dispY}-${String(dispM+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-          const status = heatmap[key] || "free";
-          const isWknd = (i % 7 === 0 || i % 7 === 6);
-          const st = STATUS[status];
-          
-          let dayCls = `flex items-center justify-center text-xs font-semibold aspect-square rounded-md border ${st.bg} ${st.text}`;
-          if (status === "free") {
-             dayCls += isWknd ? " border-gray-700 text-red-300" : " border-gray-700 text-gray-300";
-          } else {
-             dayCls += ` ${st.border}`;
-          }
-
+          if (!day) return <div key={`e${i}`} />;
+          const key = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+          const st = STATUS[hMap[key] || "free"];
+          const isWknd = i % 7 === 0 || i % 7 === 6;
           return (
-            <div key={key} className={dayCls} title={st.label}>
+            <div key={key} title={st.label}
+              className={`aspect-square flex items-center justify-center text-[10px] font-semibold rounded-sm border ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""}`}>
               {day}
             </div>
           );
@@ -109,36 +66,35 @@ function MiniCalendar({ houseId, heatmap, month }: { houseId: string; heatmap: R
   );
 }
 
-// ─── HouseCard ────────────────────────────────────────────────────────────────
-function HouseCard({ house, selectedDate, houseHeatmap, month }: { house: House; selectedDate: Date|null; houseHeatmap: Record<string, Record<string, DayStatus>>; month: Date }) {
-  const h = house as any;
-  const hId  = h.hId || h.h_id || "";
-  const price = parseInt(h.price || "0");
-  const bed   = parseInt(h.hBedroom ?? h.h_bedroom ?? "0");
-  const bath  = parseInt(h.hToilet  ?? h.h_toilet  ?? "0");
-  const ppl   = parseInt(h.people ?? "0");
-  const img   = h.imgName || h.img_name || "";
-  const farsea = h.hFarsea || h.h_farsea || "";
-  const swim  = h.swim || "chlorine";
-  const dayStatus: DayStatus = (h.dayStatus as DayStatus) || "free";
-  const sea   = seaBadge(farsea);
-  const stCfg = STATUS[dayStatus];
-  const unavailable = ["booked","waiting","repair"].includes(dayStatus);
-  const hMap = houseHeatmap[hId] || {};
-
+// ─── House Card ───────────────────────────────────────────────────────────────
+function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced }: {
+  house: House; selectedDate: Date|null;
+  houseHeatmap: Record<string, Record<string, DayStatus>>;
+  month: Date; onSynced?: () => void;
+}) {
+  const hId    = house.hId || house.h_id || "";
+  const price  = parseInt(house.price || "0");
+  const bed    = parseInt(house.hBedroom ?? "0");
+  const bath   = parseInt(house.hToilet  ?? "0");
+  const ppl    = parseInt(house.people   ?? "0");
+  const img    = house.imgName || "";
+  const swim   = house.swim || "chlorine";
+  const dayStatus: DayStatus = (house.dayStatus as DayStatus) || "free";
+  const st     = STATUS[dayStatus];
+  const busy   = ["booked","waiting","repair"].includes(dayStatus);
+  const hMap   = houseHeatmap[hId] || {};
   const amenities = [
-    yn(h,"wifi")      && "📶 WiFi",
-    yn(h,"pet")       && "🐾 Pet",
-    yn(h,"karaoke")   && "🎤 คาราโอเกะ",
-    yn(h,"jacuzzi")   && "🛁 จากุซซี่",
-    yn(h,"grill")     && "🍖 ปิ้งย่าง",
-    yn(h,"slider")    && "🛝 สไลเดอร์",
-    yn(h,"snooker")   && "🎱 สนุกเกอร์",
-    yn(h,"discotech") && "🕺 ไฟเธค",
-    yn(h,"billard")   && "🎯 บิลเลียด",
+    yn(house,"wifi")      && "📶 WiFi",
+    yn(house,"pet")       && "🐾 Pet",
+    yn(house,"karaoke")   && "🎤 คาราโอเกะ",
+    yn(house,"jacuzzi")   && "🛁 จากุซซี่",
+    yn(house,"grill")     && "🍖 ปิ้งย่าง",
+    yn(house,"slider")    && "🛝 สไลเดอร์",
+    yn(house,"snooker")   && "🎱 สนุกเกอร์",
   ].filter(Boolean) as string[];
 
-  const url = `https://poolvillacity.co.th/house/CITY-${hId}`;
+  // Link to search on poolvillacity.co.th (their SPA, direct detail not possible)
+  const detailUrl = `https://poolvillacity.co.th/search#${hId}`;
 
   const [syncing, setSyncing] = React.useState(false);
   const [syncDone, setSyncDone] = React.useState(false);
@@ -148,7 +104,7 @@ function HouseCard({ house, selectedDate, houseHeatmap, month }: { house: House;
     try {
       await axios.post(`/api/houses/${hId}/sync`);
       setSyncDone(true);
-      setTimeout(() => setSyncDone(false), 3000);
+      setTimeout(() => { setSyncDone(false); onSynced?.(); }, 2000);
     } catch {
       alert("เกิดข้อผิดพลาดในการอัพเดท");
     } finally {
@@ -157,537 +113,631 @@ function HouseCard({ house, selectedDate, houseHeatmap, month }: { house: House;
   };
 
   return (
-    <div className={`group flex flex-col rounded-2xl overflow-hidden border border-gray-800 bg-[#0f1219] shadow-md hover:shadow-2xl transition-all duration-300 ${unavailable ? "opacity-60" : "hover:border-emerald-500/50"}`}>
+    <div className={`group flex flex-col rounded-2xl overflow-hidden bg-[#0f1219] border transition-all duration-300 shadow-md
+      ${busy ? "border-gray-800 opacity-70" : "border-gray-800 hover:border-emerald-500/60 hover:shadow-emerald-900/20 hover:shadow-xl"}`}>
 
-      {/* ── รูปภาพ (Clickable) */}
-      <div className="relative h-56 overflow-hidden bg-gray-900 flex-shrink-0 block">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-          {img
-            ? <img src={img} alt={`CITY-${hId}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-            : <div className="w-full h-full flex items-center justify-center text-6xl text-gray-800">🏠</div>
-          }
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-        </a>
+      {/* Image */}
+      <div className="relative h-48 sm:h-52 overflow-hidden bg-gray-900 flex-shrink-0">
+        {img
+          ? <img src={img} alt={`CITY-${hId}`} loading="lazy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          : <div className="w-full h-full flex items-center justify-center text-5xl text-gray-800">🏠</div>
+        }
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
 
-        {/* Room ID */}
-        <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
-          <div className="bg-black/80 backdrop-blur-sm rounded-xl px-3 py-1.5 border border-white/10 shadow-lg pointer-events-auto">
-            <span className="text-white font-bold text-sm tracking-wide">CITY-{hId}</span>
-          </div>
+        {/* Badges */}
+        <div className="absolute top-2.5 left-2.5 flex gap-1.5">
+          <span className="bg-black/80 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10">
+            CITY-{hId}
+          </span>
         </div>
+        <span className={`absolute top-2.5 right-2.5 text-xs font-bold px-2.5 py-1 rounded-lg border backdrop-blur-sm
+          ${swim === "salt" ? "bg-blue-600/90 border-blue-500 text-white" : "bg-cyan-600/90 border-cyan-500 text-white"}`}>
+          {swim === "salt" ? "🧂 Salt" : "🏊 Chlorine"}
+        </span>
 
-        {/* Pool type */}
-        {swim !== "n" && (
-          <div className={`absolute top-3 right-3 rounded-xl px-2.5 py-1 text-xs font-bold border backdrop-blur-sm shadow-lg pointer-events-none ${
-            swim === "salt"
-              ? "bg-blue-600/90 border-blue-400 text-white"
-              : "bg-cyan-600/90 border-cyan-400 text-white"
-          }`}>
-            {swim === "salt" ? "🧂 Salt Pool" : "🏊 Chlorine"}
-          </div>
-        )}
-
-        {/* Status badge when date selected */}
+        {/* Status badge on date */}
         {selectedDate && (
-          <div className="absolute bottom-3 left-3 right-3 pointer-events-none">
-            <div className={`${stCfg.bg} rounded-xl px-3 py-2 flex items-center gap-2 shadow-lg border ${stCfg.border}`}>
-              <span className={`font-bold text-base ${stCfg.text}`}>{stCfg.label}</span>
-            </div>
+          <div className={`absolute bottom-2 left-2 right-2 px-3 py-1.5 rounded-xl border ${st.bg} ${st.border} flex items-center gap-2`}>
+            <span className={`font-bold text-sm ${st.text}`}>{st.label}</span>
           </div>
         )}
       </div>
 
-      {/* ── ข้อมูล */}
-      <div className="flex flex-col gap-4 p-4 flex-1">
-        {/* Sea distance */}
-        <span className={`self-start text-sm font-semibold px-3 py-1 rounded-full border ${sea.cls}`}>
-          {sea.text}
-        </span>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-3 gap-2">
+      {/* Info */}
+      <div className="flex flex-col gap-3 p-4 flex-1">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-1.5">
           {[
-            { icon: "🛏", val: `${bed}`, label: "ห้องนอน" },
-            { icon: "🚿", val: `${bath}`, label: "ห้องน้ำ" },
-            { icon: "👥", val: ppl > 0 ? `${ppl}` : "?", label: "คนสูงสุด" },
+            { icon: "🛏", val: bed, label: "ห้องนอน" },
+            { icon: "🚿", val: bath, label: "ห้องน้ำ" },
+            { icon: "👥", val: ppl || "?", label: "คนสูงสุด" },
           ].map(({ icon, val, label }) => (
-            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-xl py-2.5 border border-gray-800">
-              <span className="text-xl mb-0.5">{icon}</span>
-              <span className="font-extrabold text-white text-lg leading-none">{val}</span>
-              <span className="text-gray-400 text-xs mt-1">{label}</span>
+            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-xl py-2 border border-gray-800">
+              <span className="text-lg">{icon}</span>
+              <span className="font-bold text-white text-base leading-none">{val}</span>
+              <span className="text-gray-500 text-[10px] mt-0.5">{label}</span>
             </div>
           ))}
         </div>
 
-        {/* Price + Action Buttons */}
-        <div className="flex flex-col gap-3 mt-2">
-          {/* Price */}
-          <div>
-            <span className="text-2xl font-black text-emerald-400">฿{price.toLocaleString()}</span>
-            <span className="text-gray-500 text-sm ml-1">/คืน</span>
+        {/* Amenities */}
+        {amenities.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {amenities.slice(0, 4).map(a => (
+              <span key={a} className="text-[10px] text-gray-400 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">{a}</span>
+            ))}
+            {amenities.length > 4 && <span className="text-[10px] text-gray-500 px-2 py-0.5">+{amenities.length - 4}</span>}
           </div>
-          
-          {/* Action Buttons */}
+        )}
+
+        {/* Mini Calendar (only when no date selected) */}
+        {!selectedDate && <MiniCalendar hMap={hMap} month={month} />}
+
+        {/* Price + Buttons */}
+        <div className="mt-auto pt-2 border-t border-gray-800">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <span className="text-xl font-black text-emerald-400">฿{price.toLocaleString()}</span>
+              <span className="text-gray-600 text-xs ml-1">/คืน</span>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={handleSync} disabled={syncing}
-              className={`flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold rounded-xl transition-all shadow-sm h-10 ${
-                syncDone
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : syncing 
-                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse cursor-wait" 
-                  : "bg-blue-500/10 text-blue-400 hover:text-white hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-400 cursor-pointer"
-              }`}>
-              {syncDone ? "✅ อัพเดทแล้ว!" : syncing ? "⏳ กำลังอัพเดท..." : "🔄 อัพเดทก่อนดูทุกครั้ง"}
+              className={`h-9 flex items-center justify-center gap-1 text-[11px] font-bold rounded-xl border transition-all
+                ${syncDone ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                : syncing ? "bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse cursor-wait"
+                : "bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/25 hover:text-white cursor-pointer"}`}>
+              {syncDone ? "✅ อัพเดทแล้ว" : syncing ? "⏳ กำลังอัพ..." : "🔄 อัพเดทก่อนดู"}
             </button>
-            <a href={url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center text-sm font-bold text-emerald-400 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/30 border border-emerald-500/30 hover:border-emerald-400 rounded-xl transition-all shadow-sm h-10">
-              รายละเอียด →
+            <a href={`https://poolvillacity.co.th/new-house`} target="_blank" rel="noopener noreferrer"
+              className="h-9 flex items-center justify-center text-sm font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
+              ค้นหา →
             </a>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Mini Calendar (แสดงเฉพาะเมื่อดูทั้งหมด ไม่ได้เจาะจงวัน) */}
-        {!selectedDate && (
-          <MiniCalendar houseId={hId} heatmap={hMap} month={month} />
-        )}
+// ─── Big Calendar ─────────────────────────────────────────────────────────────
+function BigCalendar({ month, heatmap, totalHouses, onSelectDate, selectedDate }: {
+  month: Date; heatmap: Record<string, any>; totalHouses: number;
+  onSelectDate: (d: Date | null) => void; selectedDate: Date | null;
+}) {
+  const y = month.getFullYear(), m = month.getMonth();
+  const first = new Date(y, m, 1).getDay();
+  const days  = new Date(y, m + 1, 0).getDate();
+  const cells = [...Array(first).fill(null), ...Array.from({length: days}, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  return (
+    <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-4 shadow-xl">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-4 text-xs text-gray-400">
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-emerald-600 border border-emerald-500"></span>ว่างมาก</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-yellow-500 border border-yellow-400"></span>ว่างปานกลาง</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-700 border border-red-600"></span>เต็มมาก</span>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {THAI_DAYS.map((d, i) => (
+          <div key={d} className={`text-center text-xs font-bold py-1.5 ${i===0||i===6 ? "text-red-400" : "text-gray-500"}`}>{d}</div>
+        ))}
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e${i}`} className="aspect-square" />;
+          const key = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+          const info = heatmap[key];
+          const avail = info?.available ?? totalHouses;
+          const ratio = totalHouses > 0 ? avail / totalHouses : 1;
+          const isWknd = i % 7 === 0 || i % 7 === 6;
+          const dayDate = new Date(y, m, day);
+          const isPast = dayDate < today;
+          const isSel  = selectedDate?.toDateString() === dayDate.toDateString();
+          const isToday = today.toDateString() === dayDate.toDateString();
+
+          let bg = "bg-transparent border-gray-800";
+          let txt = isWknd ? "text-red-300" : "text-gray-300";
+          if (!isPast && info) {
+            if (ratio >= 0.7) { bg = "bg-emerald-900/60 border-emerald-700"; txt = "text-emerald-200"; }
+            else if (ratio >= 0.4) { bg = "bg-yellow-900/60 border-yellow-700"; txt = "text-yellow-200"; }
+            else { bg = "bg-red-900/60 border-red-800"; txt = "text-red-200"; }
+          }
+          if (isPast) { bg = "bg-transparent border-gray-800/30"; txt = "text-gray-700"; }
+          if (isSel) { bg = "bg-emerald-600 border-emerald-500"; txt = "text-white"; }
+          if (isToday && !isSel) { bg += " ring-1 ring-emerald-400"; txt = "text-emerald-300 font-black"; }
+
+          return (
+            <button key={key} disabled={isPast}
+              onClick={() => { isSel ? onSelectDate(null) : onSelectDate(dayDate); }}
+              className={`aspect-square flex flex-col items-center justify-center rounded-lg border transition-all text-xs font-semibold ${bg} ${txt} ${!isPast ? "hover:scale-105 hover:z-10 cursor-pointer" : "cursor-default"}`}
+              title={info ? `${thaiDate(dayDate)} — ว่าง ${avail} / ${totalHouses} หลัง` : thaiDate(dayDate)}>
+              <span>{day}</span>
+              {info && !isPast && (
+                <span className={`text-[8px] font-bold mt-0.5 ${isSel ? "text-white/80" : ratio >= 0.7 ? "text-emerald-400" : ratio >= 0.4 ? "text-yellow-400" : "text-red-400"}`}>
+                  {avail}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ─── Sync Button ──────────────────────────────────────────────────────────────
-function SyncButton({ lastSyncAt, onSync }: { lastSyncAt: string|null; onSync: ()=>void }) {
+function GlobalSyncButton({ lastSyncAt, onSync }: { lastSyncAt: string|null; onSync: () => void }) {
   const [syncing, setSyncing] = React.useState(false);
-  const [result, setResult]   = React.useState<{synced:number;total:number;totalBookings:number}|null>(null);
-  const [error, setError]     = React.useState<string|null>(null);
-
+  const [msg, setMsg] = React.useState<{type:"ok"|"err", text: string}|null>(null);
   const handle = async () => {
-    setSyncing(true); setError(null); setResult(null);
+    setSyncing(true); setMsg(null);
     try {
-      const r = await axios.post("/api/cron/sync", {}, { timeout: 300000 });
-      setResult({ synced: r.data.synced, total: r.data.total, totalBookings: r.data.totalBookings });
+      const r = await axios.post("/api/cron/sync", {}, { timeout: 120000 });
+      setMsg({ type: "ok", text: `✅ sync ${r.data.synced} หลัง` });
       onSync();
     } catch (e: any) {
-      setError(e?.response?.data?.error || "เกิดข้อผิดพลาด");
+      setMsg({ type: "err", text: `❌ ${e?.response?.data?.error || "error"}` });
     } finally {
       setSyncing(false);
     }
   };
-
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button id="manual-sync-btn" onClick={handle} disabled={syncing}
-        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all duration-200 shadow-md ${
-          syncing
-            ? "bg-amber-500/20 border-amber-500/50 text-amber-400 cursor-wait"
-            : "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 hover:border-emerald-400 hover:text-white active:scale-95"
-        }`}>
-        <span className={`text-base ${syncing ? "animate-spin inline-block" : ""}`}>{syncing ? "⟳" : "🔄"}</span>
-        {syncing ? "กำลังอัพเดท..." : "อัพเดทข้อมูล"}
+    <div className="flex flex-col items-end gap-0.5">
+      <button onClick={handle} disabled={syncing}
+        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all
+          ${syncing ? "bg-amber-500/20 border-amber-500/40 text-amber-400 cursor-wait animate-pulse"
+          : "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700 hover:border-emerald-500 hover:text-white active:scale-95 cursor-pointer"}`}>
+        <span className={syncing ? "animate-spin" : ""}>{syncing ? "⟳" : "🔄"}</span>
+        {syncing ? "กำลัง sync..." : "Sync ข้อมูล"}
       </button>
-      <span className="text-xs text-gray-400">
-        {result
-          ? <span className="text-emerald-400 font-semibold">✅ sync {result.synced} หลัง · {result.totalBookings} จอง</span>
-          : error
-          ? <span className="text-red-400">❌ {error}</span>
-          : lastSyncAt
-          ? `อัพเดทล่าสุด ${thaiDateTime(lastSyncAt)}`
-          : "ยังไม่มีข้อมูล"
+      <span className="text-[11px] text-gray-500">
+        {msg
+          ? <span className={msg.type === "ok" ? "text-emerald-400" : "text-red-400"}>{msg.text}</span>
+          : lastSyncAt ? `อัพเดท: ${thaiDateTime(lastSyncAt)}` : "ไม่มีข้อมูล"
         }
       </span>
     </div>
   );
 }
 
-// ─── Filter Chip (Toggle Button) ──────────────────────────────────────────────
-function Chip({ on, onClick, id, children }: { on: boolean; onClick: ()=>void; id?: string; children: React.ReactNode }) {
+// ─── Tab Button ───────────────────────────────────────────────────────────────
+function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button id={id} onClick={onClick}
-      className={`px-3 py-2 rounded-xl text-sm font-semibold border transition-all duration-150 whitespace-nowrap ${
-        on ? "bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-900/50" : "bg-gray-800 border-gray-700 text-gray-300 hover:border-emerald-500 hover:text-white"
-      }`}>
+    <button onClick={onClick}
+      className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all
+        ${active ? "bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-900/30"
+        : "bg-gray-800/60 border-gray-700 text-gray-400 hover:text-white hover:border-gray-600"}`}>
       {children}
     </button>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Filter Chip ──────────────────────────────────────────────────────────────
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`px-3 py-1.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap
+        ${on ? "bg-emerald-600/90 border-emerald-500 text-white" : "bg-gray-800/60 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white"}`}>
+      {children}
+    </button>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export function AvailabilityPage() {
   const today = React.useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const [month, setMonth]     = React.useState(new Date());
+  const [sel, setSel]         = React.useState<Date|null>(null);
+  const [tab, setTab]         = React.useState<"houses"|"calendar">("houses");
+  const [houses, setHouses]   = React.useState<House[]>([]);
+  const [heatmap, setHeatmap] = React.useState<Record<string, any>>({});
+  const [houseMap, setHouseMap] = React.useState<Record<string, Record<string, DayStatus>>>({});
+  const [totalHouses, setTotalHouses] = React.useState(0);
+  const [total, setTotal]     = React.useState(0);
+  const [page, setPage]       = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(true);
+  const [loading, setLoading] = React.useState(true);
+  const [loadingMore, setLoadingMore] = React.useState(false);
+  const [lastSyncAt, setLastSyncAt]   = React.useState<string|null>(null);
+  const [search, setSearch]   = React.useState("");
+  const [searchInput, setSearchInput] = React.useState("");
+  const [bed, setBed]         = React.useState<number|null>(null);
+  const [maxPrice, setMaxPrice] = React.useState<number|null>(null);
+  const [swim, setSwim]       = React.useState<""|"salt"|"chlorine">("");
+  const [mobileMenu, setMobileMenu] = React.useState(false);
+  const LIMIT = 12;
 
-  const [month, setMonth]         = React.useState(new Date());
-  const [sel, setSel]             = React.useState<Date|null>(null);
-  const [houses, setHouses]       = React.useState<House[]>([]);
-  const [heatmap, setHeatmap]     = React.useState<Record<string,number>>({});
-  const [houseMap, setHouseMap]   = React.useState<Record<string, Record<string, DayStatus>>>({});
-  const [total, setTotal]         = React.useState(0);
-  const [loading, setLoading]     = React.useState(true);
-  const [dbMode, setDbMode]       = React.useState(false);
-  const [lastSyncAt, setLastSyncAt] = React.useState<string|null>(null);
-  const [search, setSearch]       = React.useState("");
-  const [seaFilter, setSeaFilter] = React.useState<SeaFilter>("");
-  const [statusFilter, setStatusFilter] = React.useState<"all"|DayStatus>("all");
-  const [mobileSheet, setMobileSheet]   = React.useState<"calendar"|"filter"|null>(null);
-  const [maxPrice, setMaxPrice]   = React.useState(0);
-  const [beds, setBeds]           = React.useState<number[]>([]);
-  const [peoples, setPeoples]     = React.useState<number[]>([]);
-  const [swim, setSwim]           = React.useState<""|"salt"|"chlorine">("");
-  const [sort, setSort]           = React.useState<SortKey>("price_asc");
-  const [amenF, setAmenF]         = React.useState({ pet:false, karaoke:false, jacuzzi:false, wifi:false, grill:false, snooker:false, discotech:false, slider:false, billard:false, hotpro:false });
-
-  const exactId = React.useMemo(() => {
-    const m = search.match(/(?:city-?)?(\d+)/i);
-    return m ? m[1] : null;
-  }, [search]);
-
-  // Load initial data
-  React.useEffect(() => {
-    const y = month.getFullYear(), m2 = month.getMonth()+1;
-    Promise.all([
-      axios.get("/api/availability", {timeout:15000}).then(r=>r.data).catch(()=>({houses:[]})),
-      axios.get(`/api/availability?year=${y}&month=${m2}`, {timeout:15000}).then(r=>r.data).catch(()=>({})),
-    ]).then(([hr, cr]) => {
-      setHouses(hr.houses||[]); setTotal(hr.houses?.length||0); setDbMode(hr.dbMode??false);
-      if (hr.lastSyncAt) setLastSyncAt(hr.lastSyncAt);
-      if (cr.heatmap) { setHeatmap(cr.heatmap); setTotal(cr.totalHouses||hr.houses?.length||0); }
-      if (cr.houseHeatmap) setHouseMap(cr.houseHeatmap);
-      if (cr.lastSyncAt) setLastSyncAt(cr.lastSyncAt);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  // Month change
-  React.useEffect(() => {
-    const y = month.getFullYear(), m2 = month.getMonth()+1;
-    const url = `/api/availability?year=${y}&month=${m2}` + (exactId ? `&houseId=${exactId}` : "");
-    axios.get(url,{timeout:15000}).then(r=>r.data)
-      .then(d => { 
-        if (d.heatmap) setHeatmap(d.heatmap); 
-        if (d.houseHeatmap) setHouseMap(d.houseHeatmap);
-        if (d.lastSyncAt) setLastSyncAt(d.lastSyncAt); 
-      }).catch(()=>{});
-  }, [month, exactId]);
-
-  const handleDate = async (date: Date) => {
-    setSel(date); setLoading(true);
-    const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-    const res = await axios.get(`/api/availability?date=${key}`, {timeout:15000}).then(r=>r.data).catch(()=>null);
-    if (res?.houses) setHouses(res.houses);
-    if (res?.lastSyncAt) setLastSyncAt(res.lastSyncAt);
-    setLoading(false);
-  };
-
-  const clearDate = () => {
-    setSel(null); setLoading(true);
-    axios.get("/api/availability",{timeout:15000}).then(r=>r.data)
-      .then(d => { setHouses(d.houses||[]); if(d.lastSyncAt) setLastSyncAt(d.lastSyncAt); })
-      .finally(()=>setLoading(false));
-  };
-
-  const refreshAfterSync = () => {
-    const y = month.getFullYear(), m2 = month.getMonth()+1;
-    axios.get(`/api/availability?year=${y}&month=${m2}`,{timeout:15000}).then(r=>r.data)
-      .then(d => { 
-        if(d.heatmap) setHeatmap(d.heatmap); 
-        if(d.houseHeatmap) setHouseMap(d.houseHeatmap);
-        if(d.lastSyncAt) setLastSyncAt(d.lastSyncAt); 
-      });
-    if (sel) handleDate(sel);
-    else axios.get("/api/availability",{timeout:15000}).then(r=>r.data)
-      .then(d => { setHouses(d.houses||[]); setTotal(d.houses?.length||total); if(d.lastSyncAt) setLastSyncAt(d.lastSyncAt); });
-  };
-
-  const navM = (d: number) => setMonth(m => { const n = new Date(m); n.setMonth(n.getMonth()+d); return n; });
-
-  const activeCount = [
-    beds.length, maxPrice, peoples.length, swim, seaFilter,
-    ...Object.values(amenF),
-  ].filter(Boolean).length;
-
-  const reset = () => {
-    setSearch(""); setSeaFilter(""); setStatusFilter("all"); setMaxPrice(0);
-    setBeds([]); setPeoples([]); setSwim(""); setSort("price_asc");
-    setAmenF({pet:false,karaoke:false,jacuzzi:false,wifi:false,grill:false,snooker:false,discotech:false,slider:false,billard:false,hotpro:false});
-  };
-
-  const filtered = React.useMemo(() => {
-    return [...houses].filter(h => {
-      const ha = h as any;
-      const id = `city-${ha.hId||ha.h_id}`.toLowerCase();
-      const farsea = ha.hFarsea||ha.h_farsea||"";
-      if (search) { const q=search.toLowerCase(); if (!id.includes(q)&&!farsea.toLowerCase().includes(q)) return false; }
+  // ── Fetch houses ─────────────────────────────────────────────────────────
+  const fetchHouses = React.useCallback(async (pg: number, replace = false) => {
+    if (pg === 1) setLoading(true); else setLoadingMore(true);
+    try {
+      const params = new URLSearchParams({ page: String(pg), limit: String(LIMIT) });
+      if (search) params.set("search", search);
+      if (bed) params.set("bed", String(bed));
+      if (maxPrice) params.set("maxPrice", String(maxPrice));
+      if (swim) params.set("swim", swim);
       if (sel) {
-        const ds = ha.dayStatus||"free";
-        if (statusFilter!=="all"&&ds!==statusFilter) return false;
-        if (statusFilter==="all"&&["booked","waiting","repair"].includes(ds)) return false;
+        const key = `${sel.getFullYear()}-${String(sel.getMonth()+1).padStart(2,"0")}-${String(sel.getDate()).padStart(2,"0")}`;
+        params.set("date", key);
       }
-      if (seaFilter) {
-        const km = parseSeaKm(farsea);
-        if (seaFilter==="beach"&&km>0.5) return false;
-        if (seaFilter==="near"&&(km<=0.5||km>3)) return false;
-        if (seaFilter==="far"&&km<=3) return false;
-      }
-      const bed = parseInt(ha.hBedroom??ha.h_bedroom??"0");
-      if (beds.length>0&&!beds.some(n=>n===8?bed>=8:bed===n)) return false;
-      const price = parseInt(ha.price??"0");
-      if (maxPrice&&price>maxPrice) return false;
-      const ppl = parseInt(ha.people??"0");
-      if (peoples.length>0&&ppl<Math.min(...peoples)) return false;
-      if (swim&&(ha.swim||"chlorine")!==swim) return false;
-      if (amenF.hotpro&&ha.dayStatus!=="hotpro") return false;
-      for (const k of ["pet","karaoke","jacuzzi","wifi","grill","snooker","discotech","slider","billard"] as const)
-        if (amenF[k]&&!yn(ha,k)) return false;
-      return true;
-    }).sort((a,b) => {
-      const ha=a as any, hb=b as any;
-      const ap=parseInt(ha.price??"0"), bp=parseInt(hb.price??"0");
-      const ab=parseInt(ha.hBedroom??ha.h_bedroom??"0"), bb=parseInt(hb.hBedroom??hb.h_bedroom??"0");
-      const ak=parseSeaKm(ha.hFarsea||ha.h_farsea||""), bk=parseSeaKm(hb.hFarsea||hb.h_farsea||"");
-      if (sort==="price_asc") return ap-bp;
-      if (sort==="price_desc") return bp-ap;
-      if (sort==="bed_asc") return ab-bb;
-      if (sort==="bed_desc") return bb-ab;
-      if (sort==="sea_asc") return ak-bk;
-      if (sort==="sea_desc") return bk-ak;
-      return 0;
-    });
-  }, [houses, search, beds, maxPrice, peoples, swim, amenF, sel, statusFilter, seaFilter, sort]);
+      const { data } = await axios.get(`/api/availability?${params}`);
+      const newHouses: House[] = data.houses || [];
+      setHouses(prev => replace || pg === 1 ? newHouses : [...prev, ...newHouses]);
+      setTotal(data.total || 0);
+      setTotalHouses(data.totalHouses || data.total || 0);
+      setHasMore(data.hasMore ?? false);
+      if (data.lastSyncAt) setLastSyncAt(data.lastSyncAt);
+    } catch { /* ignore */ }
+    finally { setLoading(false); setLoadingMore(false); }
+  }, [search, bed, maxPrice, swim, sel]);
 
-  // ─── Filter Panel ───────────────────────────────────────────────────────
-  const FilterPanel = () => (
-    <div className="flex flex-col gap-5">
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">🔍 ค้นหาห้อง</label>
-        <div className="relative">
-          <input id="search-input" value={search} onChange={e=>setSearch(e.target.value)}
-            placeholder="พิมพ์เลขห้อง เช่น 293 หรือ CITY-293"
-            className="w-full border border-gray-700 bg-[#1a1e29] rounded-xl px-4 py-3 text-base text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors shadow-inner" />
-          {search && <button onClick={()=>setSearch("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-200 text-lg">✕</button>}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">🏖️ ระยะทะเล</label>
-        <div className="grid grid-cols-2 gap-2">
-          {([["","🏘️ ทั้งหมด"],["beach","🌊 ติดทะเล (≤500ม.)"],["near","🚶 ใกล้ (0.5–3กม.)"],["far","🚗 ไกล (>3กม.)"]] as const).map(([v,l]) => (
-            <Chip key={v} on={seaFilter===v} onClick={()=>setSeaFilter(v)} id={`sea-${v||"all"}`}>{l}</Chip>
-          ))}
-        </div>
-      </div>
-      {sel && (
-        <div>
-          <label className="block text-sm font-bold text-gray-300 mb-2">📊 สถานะห้อง</label>
-          <div className="grid grid-cols-2 gap-2">
-            {(Object.entries({all:"ทั้งหมด",free:"🟢 ว่าง",booked:"🔴 จอง",waiting:"🟠 รอชำระ",repair:"⚪ ซ่อม",hotpro:"🔵 ลดราคา",holiday:"🟡 เทศกาล"}) as ["all"|DayStatus,string][]).map(([v,l]) => (
-              <Chip key={v} on={statusFilter===v} onClick={()=>setStatusFilter(v)} id={`status-${v}`}>{l}</Chip>
-            ))}
-          </div>
-        </div>
-      )}
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">↕️ เรียงลำดับ</label>
-        <div className="grid grid-cols-2 gap-2">
-          {([["price_asc","💰 ราคา ถูก→แพง"],["price_desc","💰 ราคา แพง→ถูก"],["bed_asc","🛏 ห้อง น้อย→มาก"],["bed_desc","🛏 ห้อง มาก→น้อย"],["sea_asc","🌊 ใกล้ทะเล→ไกล"],["sea_desc","🚗 ไกลทะเล→ใกล้"]] as const).map(([v,l]) => (
-            <Chip key={v} on={sort===v} onClick={()=>setSort(v)} id={`sort-${v}`}>{l}</Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">🛏 จำนวนห้องนอน</label>
-        <div className="flex flex-wrap gap-2">
-          {[1,2,3,4,5,6,7,8].map(n => (
-            <Chip key={n} on={beds.includes(n)} onClick={()=>setBeds(b=>b.includes(n)?b.filter(x=>x!==n):[...b,n])} id={`bed-${n}`}>
-              {n===8?"8+ ห้อง":`${n} ห้อง`}
-            </Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">👥 รับได้ (คน)</label>
-        <div className="flex flex-wrap gap-2">
-          {[4,6,8,10,12,15,20,25].map(n => (
-            <Chip key={n} on={peoples.includes(n)} onClick={()=>setPeoples(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n])} id={`ppl-${n}`}>
-              {n}+ คน
-            </Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">💰 ราคาสูงสุด/คืน</label>
-        <div className="flex flex-wrap gap-2">
-          {[0,2000,4000,6000,8000,12000,20000].map(n => (
-            <Chip key={n} on={maxPrice===n&&n>0} onClick={()=>setMaxPrice(p=>p===n?0:n)} id={`price-${n}`}>
-              {n===0?"ทั้งหมด":`≤฿${(n/1000).toFixed(0)}K`}
-            </Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">🏊 ประเภทสระ</label>
-        <div className="flex gap-2">
-          {([["","🏊 ทั้งหมด"],["chlorine","🧪 คลอรีน"],["salt","🧂 น้ำเกลือ"]] as const).map(([v,l]) => (
-            <Chip key={v} on={swim===v} onClick={()=>setSwim(v)} id={`pool-${v||"all"}`}>{l}</Chip>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-gray-300 mb-2">✨ สิ่งอำนวยความสะดวก</label>
-        <div className="grid grid-cols-3 gap-2">
-          {([["wifi","📶 WiFi"],["pet","🐾 Pet OK"],["grill","🍖 ปิ้งย่าง"],["karaoke","🎤 คาราโอเกะ"],["jacuzzi","🛁 จากุซซี่"],["snooker","🎱 สนุกเกอร์"],["discotech","🕺 ไฟเธค"],["slider","🛝 สไลเดอร์"],["billard","🎯 บิลเลียด"],["hotpro","🔥 โปรโมชั่น"]] as const).map(([k,l]) => (
-            <Chip key={k} on={amenF[k as keyof typeof amenF]} onClick={()=>setAmenF(f=>({...f,[k]:!f[k as keyof typeof amenF]}))} id={`amen-${k}`}>{l}</Chip>
-          ))}
-        </div>
-      </div>
-      {(search||activeCount>0) && (
-        <button id="reset-all-btn" onClick={reset}
-          className="w-full py-3 text-base font-bold text-red-400 bg-red-950/30 hover:bg-red-900/50 border border-red-900/50 rounded-xl transition-all">
-          ✕ ล้างตัวกรองทั้งหมด ({activeCount})
-        </button>
-      )}
-    </div>
-  );
+  // ── Fetch heatmap ──────────────────────────────────────────────────────────
+  const fetchHeatmap = React.useCallback(async () => {
+    const y = month.getFullYear(), m2 = month.getMonth() + 1;
+    try {
+      const { data } = await axios.get(`/api/availability?year=${y}&month=${m2}`);
+      if (data.heatmap) setHeatmap(data.heatmap);
+      if (data.houseHeatmap) setHouseMap(data.houseHeatmap);
+      if (data.totalHouses) setTotalHouses(data.totalHouses);
+      if (data.lastSyncAt) setLastSyncAt(data.lastSyncAt);
+    } catch { /* ignore */ }
+  }, [month]);
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  // Initial
+  React.useEffect(() => { setPage(1); fetchHouses(1, true); }, [search, bed, maxPrice, swim, sel]);
+  React.useEffect(() => { fetchHeatmap(); }, [month]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchHouses(next);
+  };
+
+  const navM = (d: number) => setMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + d); return n; });
+
+  const handleSelectDate = (d: Date | null) => {
+    setSel(d);
+    setTab("houses");
+    setPage(1);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearch(searchInput.trim());
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearch(""); setSearchInput(""); setBed(null); setMaxPrice(null); setSwim(""); setSel(null); setPage(1);
+  };
+
+  const activeFilters = [search, bed, maxPrice, swim, sel].filter(Boolean).length;
+
   return (
-    <div className="min-h-screen bg-[#080a0f] text-gray-100 font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#080a0f] text-gray-100" style={{ fontFamily: "'Noto Sans Thai', 'Inter', sans-serif" }}>
 
-      {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#080a0f]/90 backdrop-blur-md border-b border-gray-800 shadow-xl">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-2xl shadow-lg border border-emerald-400/20">🏊</div>
-            <div>
-              <p className="font-extrabold text-lg text-white leading-none tracking-wide">PoolVillaCity API</p>
-              <p className="text-sm text-emerald-400 font-medium mt-0.5">ระบบเช็คคิวห้องว่าง</p>
+      {/* ── HEADER ─────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 bg-[#080a0f]/95 backdrop-blur-md border-b border-gray-800 shadow-2xl">
+        <div className="max-w-screen-xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-xl shadow-lg flex-shrink-0">🏊</div>
+            <div className="min-w-0">
+              <p className="font-extrabold text-base text-white leading-none truncate">Pool Villa City</p>
+              <p className="text-xs text-emerald-400 font-medium">Admin Dashboard</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <SyncButton lastSyncAt={lastSyncAt} onSync={refreshAfterSync} />
+
+          {/* Desktop search */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-sm mx-4">
+            <div className="relative w-full">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+              <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                placeholder="ค้นหาเลขห้อง เช่น 293"
+                className="w-full bg-[#1a1e29] border border-gray-700 rounded-xl pl-9 pr-4 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-colors" />
+              {searchInput && <button type="button" onClick={() => { setSearchInput(""); setSearch(""); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">✕</button>}
+            </div>
+          </form>
+
+          <div className="flex items-center gap-3">
+            <GlobalSyncButton lastSyncAt={lastSyncAt} onSync={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); }} />
+            {/* Mobile menu button */}
+            <button onClick={() => setMobileMenu(v => !v)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-gray-800 border border-gray-700 text-gray-300">
+              {mobileMenu ? "✕" : "☰"}
+            </button>
           </div>
         </div>
+
+        {/* Mobile search dropdown */}
+        {mobileMenu && (
+          <div className="md:hidden border-t border-gray-800 bg-[#0f1219] px-4 py-4 flex flex-col gap-3">
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                placeholder="ค้นหาเลขห้อง เช่น 293"
+                className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500" />
+              <button type="submit" className="px-4 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-sm">ค้นหา</button>
+            </form>
+          </div>
+        )}
       </header>
 
-      {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-8 pb-24 lg:pb-8">
+      {/* ── MAIN ───────────────────────────────────────────────────────── */}
+      <div className="max-w-screen-xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
-        {/* ── Search bar (Desktop) ──────────────────────────────── */}
-        <div className="mb-8 hidden lg:flex gap-4 items-center bg-[#0f1219] p-2 rounded-2xl border border-gray-800 shadow-sm">
-          <div className="relative flex-1">
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 text-xl">🔍</span>
-            <input id="main-search" value={search} onChange={e=>setSearch(e.target.value)}
-              placeholder="พิมพ์รหัสบ้าน เช่น 293 หรือ ค้นหาตามทำเล..."
-              className="w-full bg-transparent pl-14 pr-12 py-3 text-lg text-white placeholder-gray-600 focus:outline-none transition-all" />
-            {search && <button onClick={()=>setSearch("")} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xl">✕</button>}
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-4 text-center">
+            <p className="text-3xl font-black text-white">{totalHouses}</p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">บ้านทั้งหมด</p>
           </div>
-          <div className="w-px h-10 bg-gray-800 mx-2" />
-          {([["","🏘️ ทั้งหมด"],["beach","🌊 ติดทะเล"],["near","🚶 ใกล้ทะเล"],["far","🚗 ไกลทะเล"]] as const).map(([v,l]) => (
-            <Chip key={v} on={seaFilter===v} onClick={()=>setSeaFilter(v)} id={`qs-${v||"all"}`}>{l}</Chip>
-          ))}
+          <div className={`rounded-2xl border p-4 text-center ${sel ? "bg-emerald-950/30 border-emerald-600/50" : "bg-[#0f1219] border-gray-800"}`}>
+            <p className={`text-3xl font-black ${sel ? "text-emerald-400" : "text-white"}`}>{total}</p>
+            <p className={`text-xs mt-1 font-semibold ${sel ? "text-emerald-400/70" : "text-gray-500"}`}>
+              {sel ? `ว่าง ${thaiDate(sel)}` : "แสดงอยู่"}
+            </p>
+          </div>
+          <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-4 text-center">
+            <p className="text-lg font-black text-white">
+              {month.getMonth() + 1}/{month.getFullYear()}
+            </p>
+            <p className="text-xs text-gray-500 mt-1 font-semibold">เดือนปฏิทิน</p>
+          </div>
         </div>
 
-        {/* ── 2-col Layout ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+          <Tab active={tab === "houses"} onClick={() => setTab("houses")}>🏠 รายการบ้าน</Tab>
+          <Tab active={tab === "calendar"} onClick={() => setTab("calendar")}>🗓️ ปฏิทินภาพรวม</Tab>
+          {sel && (
+            <button onClick={() => setSel(null)} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-orange-300 border border-orange-800 bg-orange-950/30 hover:bg-orange-900/40 transition-all whitespace-nowrap">
+              📅 {thaiDate(sel)} ✕
+            </button>
+          )}
+        </div>
 
-          {/* LEFT sidebar (Filters + Legend) */}
-          <aside className="hidden lg:flex flex-col gap-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-5 text-center shadow-lg">
-                <p className="text-sm text-gray-500 font-semibold mb-2 uppercase tracking-wider">บ้านทั้งหมด</p>
-                <p className="text-5xl font-black text-white">{total}</p>
-              </div>
-              <div className={`rounded-2xl border p-5 text-center shadow-lg ${sel?"bg-emerald-950/30 border-emerald-500/50":"bg-[#0f1219] border-gray-800"}`}>
-                <p className="text-sm font-semibold mb-2 uppercase tracking-wider text-emerald-400">{sel?`ว่าง ${sel.getDate()}/${sel.getMonth()+1}`:"แสดงอยู่"}</p>
-                <p className="text-5xl font-black text-emerald-400">{filtered.length}</p>
-              </div>
+        {/* ── CALENDAR TAB ─────────────────────────────────────── */}
+        {tab === "calendar" && (
+          <div className="flex flex-col gap-6">
+            {/* Month nav */}
+            <div className="flex items-center justify-between bg-[#0f1219] rounded-2xl border border-gray-800 p-4">
+              <button onClick={() => navM(-1)} className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-700 text-sm">‹ เดือนก่อน</button>
+              <h2 className="text-lg font-black text-white">{THAI_MONTHS_FULL[month.getMonth()]} {month.getFullYear() + 543}</h2>
+              <button onClick={() => navM(1)}  className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-700 text-sm">เดือนหน้า ›</button>
             </div>
 
-            {/* Global Calendar Legend */}
-            <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4 border-b border-gray-800 pb-4">
-                <p className="text-lg font-extrabold text-white">🗓️ สัญลักษณ์ปฏิทิน</p>
+            <BigCalendar month={month} heatmap={heatmap} totalHouses={totalHouses}
+              onSelectDate={handleSelectDate} selectedDate={sel} />
+
+            {/* Legend + tip */}
+            <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-4">
+              <p className="text-sm text-gray-400 mb-3 font-semibold">💡 วิธีใช้: กดวันไหนในปฏิทินเพื่อดูบ้านที่ว่างวันนั้น ตัวเลขในแต่ละวันคือจำนวนบ้านที่ว่าง</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                {Object.entries(STATUS).filter(([k]) => k !== "free").map(([k, v]) => (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className={`w-4 h-4 rounded border ${v.bg} ${v.border}`} />
+                    <span className="text-gray-300">{v.label}</span>
+                  </div>
+                ))}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(STATUS).map(([k,c]) => {
-                  if (k === "free") return null;
-                  return (
-                    <div key={k} className="flex items-center gap-3">
-                      <span className={`w-5 h-5 rounded-md ${c.bg} ${c.border} border flex-shrink-0 shadow-sm`} />
-                      <span className="text-base text-gray-300 font-medium">{c.label}</span>
-                    </div>
-                  );
-                })}
-                <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 rounded-md border border-gray-600 bg-transparent flex-shrink-0" />
-                  <span className="text-base text-gray-300 font-medium">ว่าง / ไม่มีจอง</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── HOUSES TAB ───────────────────────────────────────── */}
+        {tab === "houses" && (
+          <div className="flex flex-col lg:flex-row gap-6">
+
+            {/* Sidebar filters (desktop) */}
+            <aside className="hidden lg:block w-72 flex-shrink-0">
+              <div className="sticky top-24 bg-[#0f1219] rounded-2xl border border-gray-800 p-5 flex flex-col gap-5">
+                <div className="flex items-center justify-between">
+                  <p className="font-extrabold text-white text-base">⚙️ ตัวกรอง</p>
+                  {activeFilters > 0 && (
+                    <button onClick={clearFilters} className="text-xs text-red-400 hover:text-red-300 font-bold">ล้างทั้งหมด ({activeFilters})</button>
+                  )}
+                </div>
+
+                {/* Search */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-2 block">🔍 รหัสบ้าน</label>
+                  <form onSubmit={handleSearch} className="flex gap-2">
+                    <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                      placeholder="เช่น 293 หรือ CITY-293"
+                      className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500 min-w-0" />
+                    <button type="submit" className="px-3 py-2 bg-emerald-600 text-white font-bold rounded-xl text-sm hover:bg-emerald-500">🔍</button>
+                  </form>
+                </div>
+
+                {/* Bedrooms */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-2 block">🛏 ห้องนอน</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1,2,3,4,5,6].map(n => (
+                      <Chip key={n} on={bed === n} onClick={() => setBed(b => b === n ? null : n)}>{n} ห้อง</Chip>
+                    ))}
+                    <Chip on={bed === 7} onClick={() => setBed(b => b === 7 ? null : 7)}>7+</Chip>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-2 block">💰 ราคาสูงสุด</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[2000,4000,6000,8000,12000].map(n => (
+                      <Chip key={n} on={maxPrice === n} onClick={() => setMaxPrice(p => p === n ? null : n)}>≤{(n/1000).toFixed(0)}K</Chip>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pool type */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-2 block">🏊 ประเภทสระ</label>
+                  <div className="flex gap-2">
+                    {([["","ทั้งหมด"],["chlorine","🧪 คลอรีน"],["salt","🧂 น้ำเกลือ"]] as const).map(([v, l]) => (
+                      <Chip key={v} on={swim === v} onClick={() => setSwim(s => s === v ? "" : v)}>{l}</Chip>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date selected */}
+                {sel && (
+                  <div className="bg-emerald-950/30 border border-emerald-700/40 rounded-xl p-3">
+                    <p className="text-xs text-emerald-400 font-bold mb-1">📅 กรองตามวันที่</p>
+                    <p className="text-sm text-emerald-300 font-bold">{thaiDate(sel)}</p>
+                    <button onClick={() => setSel(null)} className="text-xs text-red-400 mt-1 hover:text-red-300">ยกเลิก</button>
+                  </div>
+                )}
+
+                {/* Calendar: month nav */}
+                <div>
+                  <label className="text-xs font-bold text-gray-400 mb-2 block">🗓️ เดือนปฏิทิน (mini)</label>
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => navM(-1)} className="px-2 py-1 rounded-lg bg-gray-800 text-white text-xs font-bold border border-gray-700 hover:bg-gray-700">‹</button>
+                    <span className="text-xs text-gray-300 font-bold">{THAI_MONTHS[month.getMonth()]} {month.getFullYear() + 543}</span>
+                    <button onClick={() => navM(1)}  className="px-2 py-1 rounded-lg bg-gray-800 text-white text-xs font-bold border border-gray-700 hover:bg-gray-700">›</button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </aside>
 
-            {/* Filter */}
-            <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-lg font-extrabold text-white">⚙️ ตัวกรอง</p>
-                {activeCount>0 && (
-                  <span className="text-sm font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/30 rounded-xl px-3 py-1">{activeCount} ใช้งานอยู่</span>
+            {/* Main grid */}
+            <div className="flex-1 min-w-0">
+              {/* Result header */}
+              <div className="flex items-center justify-between mb-4 bg-[#0f1219] rounded-2xl border border-gray-800 px-5 py-4">
+                <div>
+                  <h1 className="text-lg font-black text-white">
+                    {sel ? `🏠 บ้านว่าง — ${thaiDate(sel)}` : search ? `🔍 ค้นหา "${search}"` : "🏠 บ้านพักล่าสุด"}
+                  </h1>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    แสดง <strong className="text-emerald-400">{houses.length}</strong> / <strong className="text-gray-300">{total}</strong> หลัง
+                    {activeFilters > 0 && <span className="text-yellow-400"> (กรอง {activeFilters} อย่าง)</span>}
+                  </p>
+                </div>
+                {(activeFilters > 0) && (
+                  <button onClick={clearFilters} className="text-sm font-bold text-red-400 bg-red-950/30 border border-red-900/50 px-3 py-1.5 rounded-xl hover:bg-red-900/50 transition-all">
+                    ✕ ล้าง
+                  </button>
                 )}
               </div>
-              <FilterPanel />
-            </div>
-          </aside>
 
-          {/* RIGHT main */}
-          <main>
-            {/* Title bar */}
-            <div className="flex items-center justify-between mb-6 bg-[#0f1219] p-5 rounded-2xl border border-gray-800">
-              <div>
-                <h1 className="text-2xl font-black text-white">
-                  {sel ? `🏠 ห้องว่าง — ${thaiDate(sel)}` : "🏠 บ้านพูลวิลล่าทั้งหมด (เลื่อนดูปฏิทินได้เลย)"}
-                </h1>
-                <p className="text-base text-gray-500 mt-1">
-                  กำลังแสดง <strong className="text-emerald-400">{filtered.length}</strong> จาก {total} หลัง
-                  {activeCount>0 && ` (กรอง ${activeCount} อย่าง)`}
-                </p>
-              </div>
-              {sel ? (
-                <button onClick={clearDate} id="clear-top"
-                  className="text-base font-bold text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 transition-all shadow-md">
-                  ✕ เลิกดูรายวัน (ดูทั้งหมด)
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button onClick={()=>navM(-1)} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-700">‹ เดือนก่อน</button>
-                  <button onClick={()=>navM(1)} className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-700">เดือนหน้า ›</button>
+              {/* Cards */}
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {Array.from({length: 6}).map((_, i) => (
+                    <div key={i} className="h-[420px] rounded-2xl bg-[#1a1e29] animate-pulse border border-gray-800" />
+                  ))}
                 </div>
+              ) : houses.length === 0 ? (
+                <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-16 text-center">
+                  <p className="text-6xl mb-4">🏖️</p>
+                  <p className="text-xl font-bold text-white mb-2">ไม่พบบ้านที่ตรงเงื่อนไข</p>
+                  <p className="text-gray-500 mb-6">ลองเปลี่ยนการค้นหาหรือลดเงื่อนไข</p>
+                  <button onClick={clearFilters} className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all">
+                    ล้างตัวกรอง
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {houses.map(h => (
+                      <HouseCard key={h.hId} house={h} selectedDate={sel}
+                        houseHeatmap={houseMap} month={month}
+                        onSynced={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); }} />
+                    ))}
+                  </div>
+
+                  {/* Load more */}
+                  {hasMore && (
+                    <div className="mt-6 flex justify-center">
+                      <button onClick={loadMore} disabled={loadingMore}
+                        className="px-8 py-3 bg-gray-800 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 hover:border-emerald-500 font-bold rounded-2xl transition-all disabled:opacity-50 flex items-center gap-2">
+                        {loadingMore ? <><span className="animate-spin">⟳</span> กำลังโหลด...</> : "⬇️ โหลดเพิ่มอีก 12 หลัง"}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-
-            {/* Cards */}
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {Array.from({length:6}).map((_,i) => (
-                  <div key={i} className="rounded-2xl border border-gray-800 bg-[#1a1e29] h-96 animate-pulse" />
-                ))}
-              </div>
-            ) : filtered.length===0 ? (
-              <div className="bg-[#0f1219] rounded-2xl border border-gray-800 p-20 text-center shadow-lg">
-                <p className="text-7xl mb-6 opacity-80">🏖️</p>
-                <p className="text-2xl font-bold text-white mb-3">ไม่พบบ้านที่ตรงเงื่อนไข</p>
-                <p className="text-gray-400 text-base mb-8">ลองเปลี่ยนการค้นหา หรือลดเงื่อนไขการกรองลง</p>
-                <button onClick={reset} id="empty-reset"
-                  className="text-base font-bold text-emerald-400 bg-emerald-950/50 hover:bg-emerald-900 border border-emerald-500/50 rounded-xl px-8 py-4 transition-all">
-                  ล้างตัวกรองทั้งหมด
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filtered.map(h => (
-                  <HouseCard key={(h as any).hId||(h as any).h_id} house={h} selectedDate={sel} houseHeatmap={houseMap} month={month} />
-                ))}
-              </div>
-            )}
-          </main>
-        </div>
+          </div>
+        )}
       </div>
-      
-      {/* Mobile nav sheets omitted for brevity, but they work automatically via the state */}
+
+      {/* ── Mobile bottom nav ──────────────────────────────────────────── */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-[#0f1219]/95 backdrop-blur-md border-t border-gray-800 safe-area-bottom">
+        <div className="flex items-center justify-around h-16 px-4">
+          <button onClick={() => setTab("houses")}
+            className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${tab==="houses" ? "text-emerald-400" : "text-gray-500"}`}>
+            <span className="text-2xl">🏠</span>
+            <span className="text-[10px] font-bold">รายการบ้าน</span>
+          </button>
+          <button onClick={() => setTab("calendar")}
+            className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${tab==="calendar" ? "text-emerald-400" : "text-gray-500"}`}>
+            <span className="text-2xl">🗓️</span>
+            <span className="text-[10px] font-bold">ปฏิทิน</span>
+          </button>
+          <button onClick={() => setMobileMenu(v => !v)}
+            className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all ${mobileMenu ? "text-emerald-400" : "text-gray-500"}`}>
+            <span className="text-2xl">⚙️</span>
+            <span className="text-[10px] font-bold">กรอง{activeFilters > 0 ? ` (${activeFilters})` : ""}</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile filter sheet */}
+      {mobileMenu && (
+        <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenu(false)} />
+          <div className="relative bg-[#0f1219] rounded-t-3xl border-t border-gray-800 p-5 max-h-[80vh] overflow-y-auto flex flex-col gap-4">
+            <div className="flex items-center justify-between mb-1">
+              <p className="font-extrabold text-white text-lg">⚙️ ตัวกรอง</p>
+              <button onClick={() => setMobileMenu(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            {/* Mobile search */}
+            <form onSubmit={(e) => { handleSearch(e); setMobileMenu(false); }} className="flex gap-2">
+              <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                placeholder="ค้นหาเลขห้อง เช่น 293"
+                className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-4 py-3 text-base text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500" />
+              <button type="submit" className="px-4 bg-emerald-600 text-white font-bold rounded-xl">🔍</button>
+            </form>
+
+            <div>
+              <label className="text-sm font-bold text-gray-400 mb-2 block">🛏 ห้องนอน</label>
+              <div className="flex flex-wrap gap-2">
+                {[1,2,3,4,5,6,7].map(n => (
+                  <Chip key={n} on={bed === n} onClick={() => setBed(b => b === n ? null : n)}>{n}{n===7?"+":" "} ห้อง</Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-gray-400 mb-2 block">💰 ราคาสูงสุด</label>
+              <div className="flex flex-wrap gap-2">
+                {[2000,4000,6000,8000,12000].map(n => (
+                  <Chip key={n} on={maxPrice === n} onClick={() => setMaxPrice(p => p === n ? null : n)}>≤{(n/1000).toFixed(0)}K</Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-gray-400 mb-2 block">🏊 ประเภทสระ</label>
+              <div className="flex gap-2">
+                {([["","ทั้งหมด"],["chlorine","🧪 คลอรีน"],["salt","🧂 น้ำเกลือ"]] as const).map(([v, l]) => (
+                  <Chip key={v} on={swim === v} onClick={() => setSwim(s => s === v ? "" : v)}>{l}</Chip>
+                ))}
+              </div>
+            </div>
+            {activeFilters > 0 && (
+              <button onClick={() => { clearFilters(); setMobileMenu(false); }} className="w-full py-3 font-bold text-red-400 bg-red-950/30 border border-red-900/40 rounded-xl hover:bg-red-900/50">
+                ✕ ล้างตัวกรองทั้งหมด
+              </button>
+            )}
+            <button onClick={() => setMobileMenu(false)} className="w-full py-3 font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-500">
+              ✅ ดูผลลัพธ์ ({total} หลัง)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
