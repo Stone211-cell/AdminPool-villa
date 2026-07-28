@@ -1,0 +1,18 @@
+export const th = {
+  home: "หน้าหลัก",
+  article: "บทความ",
+  contact: "ติดต่อเรา",
+  list_house: "ลงประกาศบ้าน",
+  login: "เข้าสู่ระบบ",
+  search_placeholder: "ค้นหาบ้านพักพูลวิลล่า",
+  search_btn: "ค้นหา",
+  adult: "ผู้ใหญ่",
+  child: "เด็ก",
+  pet: "สัตว์เลี้ยง",
+  room: "ห้องพัก",
+  villa_real: "บ้านจริง ตรงปก",
+  villa_real_desc: "จากเจ้าของตัวจริง ตรวจเช็คโดยทีมงานทุกหลัง",
+  book_safe: "จองบ้านสบายใจ",
+  book_safe_desc: "วางมัดจำก่อนได้ไม่ต้องจ่ายเต็ม",
+  admin_panel: "ระบบเอเจ้นท์",
+};

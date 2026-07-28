@@ -1,0 +1,18 @@
+export const en = {
+  home: "Home",
+  article: "Articles",
+  contact: "Contact Us",
+  list_house: "List your Villa",
+  login: "Login",
+  search_placeholder: "Search for pool villas",
+  search_btn: "Search",
+  adult: "Adults",
+  child: "Children",
+  pet: "Pets",
+  room: "Rooms",
+  villa_real: "Verified Villas",
+  villa_real_desc: "Direct from owners, verified by our team",
+  book_safe: "Safe Booking",
+  book_safe_desc: "Pay deposit only, no full payment required",
+  admin_panel: "Agent System",
+};

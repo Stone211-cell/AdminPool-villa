@@ -38,10 +38,11 @@ export async function POST(
       } catch (e) {
         console.error(`Failed to delete orphaned house ${hId}:`, e);
       }
-      return NextResponse.json(
-        { error: `บ้าน CITY-${hId} ถูกลบออกจากระบบต้นทางแล้ว (ระบบจัดการลบออกจากฐานข้อมูลให้แล้ว)` },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+        message: `บ้าน CITY-${hId} ถูกลบออกจากระบบต้นทางแล้ว ระบบจัดการลบออกจากฐานข้อมูลให้เรียบร้อย`
+      });
     }
 
     const result = await syncOneHouse(rh);

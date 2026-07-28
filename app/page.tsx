@@ -1,11 +1,99 @@
-// app/page.tsx
-import { AvailabilityPage } from "@/components/AvailabilityPage";
+import { Navbar } from "@/components/Navbar";
+import { LineRichMenu } from "@/components/LineRichMenu";
 
 export const metadata = {
-  title: "พูลวิลล่าพัทยา | บ้านพักพร้อมสระว่ายน้ำส่วนตัว",
-  description: "ค้นหาบ้านพักพูลวิลล่าพัทยาที่ว่างตามวันที่คุณต้องการ",
+  title: "Villa DD | จองบ้านพักพูลวิลล่าส่วนตัว ราคาพิเศษ",
+  description: "จองบ้านพักพูลวิลล่าส่วนตัวที่ดีที่สุด พร้อมโปรโมชั่นมากมาย",
 };
 
-export default function HomePage() {
-  return <AvailabilityPage />;
+export default function CustomerLandingPage() {
+  return (
+    <div className="min-h-screen bg-[#f4f7fe] font-sans overflow-x-hidden relative">
+      <Navbar />
+      
+      {/* Hero Section */}
+      <div className="relative pt-20 pb-32 flex flex-col items-center justify-center px-4">
+        {/* Background Decorative Blur */}
+        <div className="absolute top-0 inset-x-0 h-full overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-pink-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+          <div className="absolute top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-200/50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+        </div>
+
+        {/* Floating Badges */}
+        <div className="flex gap-4 mb-10 z-10 w-full max-w-4xl justify-start sm:justify-center">
+           <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-white flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg></div>
+             <div>
+               <p className="text-xs font-bold text-gray-800">บ้านจริง ตรงปก</p>
+               <p className="text-[10px] text-gray-500">จากเจ้าของตัวจริง ตรวจเช็คโดยทีมงานทุกหลัง</p>
+             </div>
+           </div>
+           <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-white flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+             <div>
+               <p className="text-xs font-bold text-gray-800">จองบ้านสบายใจ</p>
+               <p className="text-[10px] text-gray-500">วางมัดจำก่อนได้ไม่ต้องจ่ายเต็ม</p>
+             </div>
+           </div>
+        </div>
+
+        {/* Search Bar matching Image 1 */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-2 md:p-3 w-full max-w-5xl z-20 flex flex-col md:flex-row items-center border border-gray-100 gap-2 relative">
+          
+          <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" placeholder="ค้นหาบ้านพักพูลวิลล่า" className="w-full bg-transparent focus:outline-none text-sm font-semibold text-gray-700 placeholder-gray-400" />
+          </div>
+
+          <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100 cursor-pointer hover:bg-gray-50 rounded-xl transition-colors">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span className="text-sm font-semibold text-gray-700">เลือกวันเข้าพัก</span>
+          </div>
+
+          <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full cursor-pointer hover:bg-gray-50 rounded-xl transition-colors relative group">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <span className="text-sm font-semibold text-gray-700">ผู้เข้าพัก</span>
+
+            {/* Hover Popup for Guests */}
+            <div className="absolute top-full right-0 mt-4 bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+               {[
+                 { id: "adult", icon: "user", label: "ผู้ใหญ่", desc: "" },
+                 { id: "child", icon: "baby", label: "เด็ก", desc: "อายุ 0-12 ปี" },
+                 { id: "pet", icon: "paw", label: "สัตว์เลี้ยง", desc: "หมา แมว ฯลฯ" },
+                 { id: "room", icon: "door", label: "ห้องพัก", desc: "จำนวนห้องพักที่ต้องการ" },
+               ].map(item => (
+                 <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 font-bold">
+                         {item.id === "adult" && "🧑"}
+                         {item.id === "child" && "👶"}
+                         {item.id === "pet" && "🐾"}
+                         {item.id === "room" && "🚪"}
+                       </div>
+                       <div>
+                         <p className="text-sm font-bold text-gray-700">{item.label}</p>
+                         {item.desc && <p className="text-[10px] text-gray-400">{item.desc}</p>}
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-blue-500 hover:bg-blue-50 font-bold">-</button>
+                      <span className="w-4 text-center font-bold text-gray-700">0</span>
+                      <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-blue-500 hover:bg-blue-50 font-bold">+</button>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+
+          <button className="bg-[#2443F3] hover:bg-[#1a33c9] text-white px-8 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            ค้นหา
+          </button>
+        </div>
+      </div>
+
+      <LineRichMenu />
+    </div>
+  );
 }

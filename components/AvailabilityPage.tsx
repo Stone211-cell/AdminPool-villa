@@ -103,8 +103,11 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateC
     e.preventDefault(); e.stopPropagation();
     setSyncing(true); setSyncDone(false);
     try {
-      await axios.post(`/api/houses/${hId}/sync`);
+      const { data } = await axios.post(`/api/houses/${hId}/sync`);
       setSyncDone(true);
+      if (data.deleted) {
+        alert(data.message);
+      }
       if (onSynced) onSynced();
     } catch (e: any) {
       alert(e.response?.data?.error || "ไม่สามารถดึงข้อมูลได้");
