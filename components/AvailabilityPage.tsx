@@ -56,7 +56,7 @@ function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DaySt
           const isWknd = i % 7 === 0 || i % 7 === 6;
           return (
             <button key={key} title={st.label} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDateClick?.(key); }}
-              className={`aspect-square flex items-center justify-center text-sm md:text-lg font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-border" : ""}`}>
+              className={`aspect-square flex items-center justify-center text-sm md:text-lg font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-rainbow" : ""}`}>
               {day}
             </button>
           );

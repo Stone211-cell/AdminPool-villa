@@ -151,18 +151,25 @@ html {
   0% { background-position: 0% 0%, 100% 100%, 0% 100%, 100% 0%; }
   100% { background-position: 100% 0%, 0% 100%, 0% 0%, 100% 100%; }
 }
-.animated-border {
+.animated-rainbow {
   position: relative;
 }
-.animated-border::after {
+.animated-rainbow::before {
   content: '';
   position: absolute;
   inset: -2px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #ff8a00, #e52e71, #ff8a00);
-  background-size: 200% 200%;
+  padding: 2px; /* border thickness */
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+  background-size: 200% 100%;
   animation: bgMove 2s linear infinite;
-  z-index: -1;
+  
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
 }
 @keyframes bgMove {
   0% { background-position: 0% 50%; }
