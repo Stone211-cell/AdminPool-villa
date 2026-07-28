@@ -697,10 +697,9 @@ export function AvailabilityPage() {
 
             <div className="w-full h-px bg-gray-800 my-1"></div>
 
-            <button onClick={() => { handleBulkSync(); setMobileMenu(false); }} disabled={isSyncing}
-              className="w-full py-3 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors border border-gray-700 whitespace-nowrap shadow-md">
-              {isSyncing ? <><span className="animate-spin inline-block">⟳</span> กำลังซิงค์...</> : "🔄 ซิงค์อัพเดทข้อมูลทั้งหมด"}
-            </button>
+            <div className="w-full">
+              <GlobalSyncButton lastSyncAt={lastSyncAt} onSync={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); setMobileMenu(false); }} />
+            </div>
 
             <div>
               <label className="text-sm font-bold text-gray-400 mb-2 block">🛏 ห้องนอน</label>
