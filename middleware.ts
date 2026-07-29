@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// Only protect /searchroom for agents
-const isProtectedRoute = createRouteMatcher(['/searchroom(.*)'])
+// Protect only admin pages
+const isProtectedRoute = createRouteMatcher(['/admin(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
