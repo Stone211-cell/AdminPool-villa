@@ -302,7 +302,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
 
             {/* ARTICLES Section (Section 3) */}
             {articles.length > 0 && (
-              <div className="mb-16">
+              <div className="mb-16 relative">
                 <div className="flex items-end justify-between mb-8" data-aos="fade-up">
                   <div>
                     <h2 className="text-3xl font-black text-gray-900 mb-2">บทความและข่าวสาร</h2>
@@ -313,34 +313,26 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
                   </Link>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-aos="fade-up">
-                  {/* Main Article (Left) */}
-                  <Link href={`/articles/${articles[0].id}`} className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all h-[400px] lg:h-[500px]">
-                    <img src={articles[0].imageUrl || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={articles[0].title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
-                      <p className="text-white/80 text-sm font-bold mb-2">
-                        {new Date(articles[0].createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </p>
-                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2">{articles[0].title}</h3>
-                      <p className="text-white/70 line-clamp-2 text-sm">{articles[0].content}</p>
-                    </div>
-                  </Link>
-
-                  {/* Sub Articles (Right Stacked) */}
-                  <div className="flex flex-col gap-8 h-full">
-                    {articles.slice(1, 3).map((article: any, idx: number) => (
-                      <Link href={`/articles/${article.id}`} key={article.id} className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex-1 min-h-[200px]">
-                        <img src={article.imageUrl || "https://placehold.co/800x400/ffe4e6/ff758f"} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
-                          <p className="text-white/80 text-xs font-bold mb-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-aos="fade-up">
+                  {articles.slice(0, 3).map((article: any, idx: number) => (
+                    <Link href={`/articles/${article.id}`} key={article.id} className={`group relative rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all h-[280px] block transform hover:-translate-y-2 duration-500 ${idx === 1 ? 'md:-translate-y-4' : ''}`}>
+                      {/* Animated Sparkles / Attention grabbers in the background */}
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 animate-pulse"></div>
+                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 animate-pulse" style={{ animationDelay: '1s' }}></div>
+                      
+                      <img src={article.imageUrl || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1f2937]/90 via-[#1f2937]/40 to-transparent flex flex-col justify-end p-6">
+                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                          <p className="text-[#ff758f] text-xs font-black mb-2 uppercase tracking-wider">
                             {new Date(article.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </p>
-                          <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">{article.title}</h3>
-                          <p className="text-white/70 line-clamp-1 text-xs">{article.content}</p>
+                          <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 leading-snug">{article.title}</h3>
+                          <p className="text-white/70 line-clamp-2 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">{article.content}</p>
                         </div>
-                      </Link>
-                    ))}
-                  </div>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
               </div>
             )}

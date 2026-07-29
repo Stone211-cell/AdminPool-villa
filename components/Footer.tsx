@@ -77,7 +77,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} Villa DD By Go More Hub. All rights reserved.
+            © {new Date().getFullYear()} Villa DD By suvapat jhaturuhsombun. All rights reserved.
           </p>
           <div className="flex gap-4 text-sm text-gray-400">
             <Link href="/privacy-policy" className="hover:text-gray-600 transition-colors">Privacy Policy</Link>
