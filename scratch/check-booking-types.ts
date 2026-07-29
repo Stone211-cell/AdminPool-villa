@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-//ห
+//หsearchroom
 async function main() {
   const counts = await prisma.booking.groupBy({
     by: ['bookType'],

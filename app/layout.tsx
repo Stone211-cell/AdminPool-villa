@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Villa DD | จองบ้านพักพูลวิลล่าส่วนตัว ราคาพิเศษ",
   description: "จองบ้านพักพูลวิลล่าส่วนตัวที่ดีที่สุด พร้อมโปรโมชั่นมากมาย",
+  referrer: "no-referrer",
 };
 
 import { I18nProvider } from "@/components/I18nProvider";
