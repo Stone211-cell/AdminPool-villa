@@ -33,7 +33,7 @@ export default function RootLayout({
         lang="th"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased text-base md:text-lg`}
       >
-        <body className="min-h-full flex flex-col font-sans">
+        <body className="min-h-full flex flex-col font-sans bg-[#fff5f8] overflow-x-hidden">
           <AosInit />
           <I18nProvider>
             {children}
