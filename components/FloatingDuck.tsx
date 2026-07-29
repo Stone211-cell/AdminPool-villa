@@ -40,8 +40,8 @@ export function FloatingDuck() {
     <motion.div 
       className="fixed -z-10 pointer-events-none" // -z-10 puts it in the background relative to content
       style={{
-        bottom: '10%',
-        right: '10%',
+        bottom: '5%',
+        right: '5%',
         y: useTransform(smoothScrollY, (y) => (y * 0.5) + bobbing), // Parallax effect
         rotateX,
         rotateY,
@@ -49,7 +49,8 @@ export function FloatingDuck() {
         perspective: 1000,
       }}
     >
-      <div className="w-24 h-24 md:w-32 md:h-32 drop-shadow-2xl opacity-60 mix-blend-multiply">
+      {/* Massive duck in the background */}
+      <div className="w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-20 mix-blend-multiply">
         {/* Yellow Rubber Duck SVG */}
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
           {/* Body */}

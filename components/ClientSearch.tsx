@@ -7,6 +7,10 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [guests, setGuests] = useState({ adult: 0, child: 0, pet: 0 });
 
+  // Pagination logic
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // 4 rows of 3 on desktop
+
   const filteredHouses = initialHouses.filter(house => {
     // Search by hId or zone
     const matchSearch = house.hId.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -17,6 +21,64 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
     
     return matchSearch && matchCapacity;
   });
+
+  // Reset page when filters change
+  const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+  const handleGuestsChange = (newGuests: typeof guests) => {
+    setGuests(newGuests);
+    setCurrentPage(1);
+  };
+
+  const totalPages = Math.ceil(filteredHouses.length / itemsPerPage);
+  const paginatedHouses = filteredHouses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+        pages.push(i);
+      } else if (i === currentPage - 2 || i === currentPage + 2) {
+        pages.push("...");
+      }
+    }
+    const uniquePages = pages.filter((p, i, a) => p !== "..." || a[i - 1] !== "...");
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-12 mb-8" data-aos="fade-up">
+        <button 
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+          disabled={currentPage === 1} 
+          className="w-10 h-10 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          &lt;
+        </button>
+        {uniquePages.map((p, i) => (
+          p === "..." ? (
+            <span key={i} className="text-gray-400 font-bold px-2">...</span>
+          ) : (
+            <button 
+              key={i} 
+              onClick={() => setCurrentPage(p as number)} 
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentPage === p ? 'bg-[#ff758f] text-white shadow-md shadow-pink-200' : 'text-gray-600 hover:bg-pink-50 hover:text-[#ff758f]'}`}
+            >
+              {p}
+            </button>
+          )
+        ))}
+        <button 
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+          disabled={currentPage === totalPages} 
+          className="w-10 h-10 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          &gt;
+        </button>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -30,7 +92,7 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
             placeholder="ค้นหาชื่อบ้าน, รหัส หรือ โซน" 
             className="w-full bg-transparent focus:outline-none text-sm font-semibold text-gray-700 placeholder-gray-400" 
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={handleSearchTermChange}
           />
         </div>
 
@@ -65,9 +127,9 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
                      </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setGuests(prev => ({ ...prev, [item.id]: Math.max(0, prev[item.id as keyof typeof guests] - 1) }))} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">-</button>
+                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: Math.max(0, guests[item.id as keyof typeof guests] - 1) })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">-</button>
                     <span className="w-4 text-center font-bold text-gray-700">{guests[item.id as keyof typeof guests]}</span>
-                    <button onClick={() => setGuests(prev => ({ ...prev, [item.id]: prev[item.id as keyof typeof guests] + 1 }))} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">+</button>
+                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: guests[item.id as keyof typeof guests] + 1 })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">+</button>
                   </div>
                </div>
              ))}
@@ -91,13 +153,10 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
               พบ {filteredHouses.length} หลัง
             </p>
           </div>
-          <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
-            ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredHouses.map((house, i) => (
+          {paginatedHouses.map((house, i) => (
             <Link 
               href={`/villas/CITY-${house.hId}`} 
               key={house.hId} 
@@ -143,6 +202,9 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
              </div>
           )}
         </div>
+
+        {/* Render Pagination */}
+        {renderPagination()}
       </div>
     </>
   );
