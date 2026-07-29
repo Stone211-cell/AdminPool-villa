@@ -35,9 +35,9 @@ async function main() {
 
   for (const art of articles) {
     await client.query(
-      `INSERT INTO articles (id, title, content, image_url, published) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, image_url = EXCLUDED.image_url`,
+      `INSERT INTO articles (id, title, content, image_url, published, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW()) 
+       ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, content = EXCLUDED.content, image_url = EXCLUDED.image_url, updated_at = NOW()`,
       [art.id, art.title, art.content, art.imageUrl, art.published]
     );
   }

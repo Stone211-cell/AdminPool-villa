@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 import { I18nProvider } from "@/components/I18nProvider";
 import { AosInit } from "@/components/AosInit";
 import { FloatingDuck } from "@/components/FloatingDuck";
+import { Footer } from "@/components/Footer";
 
 export default function RootLayout({
   children,
@@ -37,6 +38,7 @@ export default function RootLayout({
           <AosInit />
           <I18nProvider>
             {children}
+            <Footer />
           </I18nProvider>
           <FloatingDuck />
         </body>
