@@ -27,9 +27,11 @@ export function Navbar() {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="text-3xl font-black tracking-tighter text-[#1f2937]">
-                <span className="text-[#ff758f]">P</span>OOL VILLA
+            <Link href="/" className="flex items-center gap-3">
+              <img src="/logo.jpg" alt="Baitong Poolvilla" className="h-12 w-12 rounded-full object-cover shadow-sm" />
+              <div className="hidden sm:block">
+                <p className="text-base font-black tracking-tight text-[#1f2937] leading-none">BAITONG POOLVILLA</p>
+                <p className="text-xs text-[#ff758f] font-semibold">บ้านพักพูลวิลล่าพัทยา สัตหีบ</p>
               </div>
             </Link>
           </div>

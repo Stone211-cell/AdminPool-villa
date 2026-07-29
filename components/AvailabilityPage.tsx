@@ -116,89 +116,95 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateC
     }
   };
 
+  const [imgError, setImgError] = React.useState(false);
+
   return (
     <div className={`group flex flex-col rounded-2xl overflow-hidden bg-[#0f1219] border transition-all duration-300 shadow-md
-      ${busy ? "border-gray-800 opacity-70" : "border-gray-800 hover:border-emerald-500/60 hover:shadow-emerald-900/20 hover:shadow-xl"}`}>
+      ${busy ? "border-gray-800 opacity-60" : "border-gray-800 hover:border-emerald-500/60 hover:shadow-emerald-900/20 hover:shadow-lg"}`}>
 
-      {/* Image */}
-      <div className="relative h-48 sm:h-52 overflow-hidden bg-gray-900 flex-shrink-0">
-        {img
+      {/* Image — compact height */}
+      <div className="relative h-36 overflow-hidden bg-gray-900 flex-shrink-0">
+        {img && !imgError
           ? <img src={img} alt={`CITY-${hId}`} loading="lazy"
+              onError={() => setImgError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          : <div className="w-full h-full flex items-center justify-center text-5xl text-gray-800">🏠</div>
+          : <div className="w-full h-full flex flex-col items-center justify-center text-gray-700">
+              <span className="text-4xl">🏠</span>
+              <span className="text-xs text-gray-600 mt-1">CITY-{hId}</span>
+            </div>
         }
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
         {/* Badges */}
-        <div className="absolute top-2.5 left-2.5 flex gap-1.5">
-          <span className="bg-black/80 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-lg border border-white/10">
+        <div className="absolute top-2 left-2 flex gap-1">
+          <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10">
             CITY-{hId}
           </span>
         </div>
-        <span className={`absolute top-2.5 right-2.5 text-xs font-bold px-2.5 py-1 rounded-lg border backdrop-blur-sm
+        <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded border
           ${swim === "salt" ? "bg-blue-600/90 border-blue-500 text-white" : "bg-cyan-600/90 border-cyan-500 text-white"}`}>
-          {swim === "salt" ? "🧂 Salt" : "🏊 Chlorine"}
+          {swim === "salt" ? "🧂" : "🏊"}
         </span>
 
-        {/* Status badge on date */}
+        {/* Status badge */}
         {selectedDate && (
-          <div className={`absolute bottom-2 left-2 right-2 px-3 py-1.5 rounded-xl border ${st.bg} ${st.border} flex items-center gap-2`}>
-            <span className={`font-bold text-sm ${st.text}`}>{st.label}</span>
+          <div className={`absolute bottom-1.5 left-2 right-2 px-2 py-1 rounded-lg border ${st.bg} ${st.border} flex items-center gap-1`}>
+            <span className={`font-bold text-xs ${st.text}`}>{st.label}</span>
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="flex flex-col gap-3 p-4 flex-1">
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3">
+      <div className="flex flex-col gap-2 p-3 flex-1">
+        {/* Stats — compact */}
+        <div className="grid grid-cols-3 gap-1">
           {[
-            { icon: "🛏", val: bed, label: "ห้องนอน" },
-            { icon: "🚿", val: bath, label: "ห้องน้ำ" },
-            { icon: "👥", val: ppl || "?", label: "คนสูงสุด" },
+            { icon: "🛏", val: bed, label: "นอน" },
+            { icon: "🚿", val: bath, label: "น้ำ" },
+            { icon: "👥", val: ppl || "?", label: "คน" },
           ].map(({ icon, val, label }) => (
-            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-xl py-3 border border-gray-700 shadow-sm">
-              <span className="text-2xl">{icon}</span>
-              <span className="font-bold text-white text-lg md:text-xl leading-none mt-2">{val}</span>
-              <span className="text-gray-400 text-xs md:text-sm mt-1">{label}</span>
+            <div key={label} className="flex flex-col items-center bg-[#1a1e29] rounded-lg py-1.5 border border-gray-700">
+              <span className="text-base">{icon}</span>
+              <span className="font-bold text-white text-sm leading-none mt-0.5">{val}</span>
+              <span className="text-gray-500 text-[10px]">{label}</span>
             </div>
           ))}
         </div>
 
-        {/* Amenities */}
+        {/* Amenities compact */}
         {amenities.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-1 mb-1">
-            {amenities.slice(0, 4).map(a => (
-              <span key={a} className="text-xs md:text-sm font-medium text-gray-300 bg-gray-800/80 border border-gray-600 px-3 py-1 rounded-full shadow-sm">{a}</span>
+          <div className="flex flex-wrap gap-1">
+            {amenities.slice(0, 3).map(a => (
+              <span key={a} className="text-[10px] font-medium text-gray-400 bg-gray-800/80 border border-gray-700 px-2 py-0.5 rounded-full">{a}</span>
             ))}
-            {amenities.length > 4 && <span className="text-xs md:text-sm text-gray-400 font-medium px-3 py-1">+{amenities.length - 4}</span>}
+            {amenities.length > 3 && <span className="text-[10px] text-gray-500 px-1">+{amenities.length - 3}</span>}
           </div>
         )}
 
-        {/* Mini Calendar (always show) */}
-        <div className="mt-4">
+        {/* Mini Calendar */}
+        <div className="mt-1">
           <MiniCalendar hMap={hMap} month={month} onDateClick={(d) => onDateClick?.(hId, d)} />
         </div>
 
         {/* Price + Buttons */}
-        <div className="mt-auto pt-4 border-t border-gray-800">
-          <div className="flex items-center justify-between mb-3">
+        <div className="mt-auto pt-2 border-t border-gray-800">
+          <div className="flex items-center justify-between">
             <div>
-              <span className="text-2xl md:text-3xl font-black text-emerald-400">฿{price.toLocaleString()}</span>
-              <span className="text-gray-500 text-sm ml-1">/คืน</span>
+              <span className="text-lg font-black text-emerald-400">฿{price.toLocaleString()}</span>
+              <span className="text-gray-500 text-xs ml-1">/คืน</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className="grid grid-cols-2 gap-1.5 mt-2">
             <button onClick={handleSync} disabled={syncing}
-              className={`h-12 flex items-center justify-center gap-1 text-sm md:text-base font-bold rounded-xl border transition-all
+              className={`h-9 flex items-center justify-center gap-1 text-xs font-bold rounded-xl border transition-all
                 ${syncDone ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
                 : syncing ? "bg-amber-500/20 text-amber-400 border-amber-500/40 animate-pulse cursor-wait"
                 : "bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/25 hover:text-white cursor-pointer"}`}>
-              {syncDone ? "✅ อัพเดทแล้ว" : syncing ? "⏳ กำลังอัพ..." : "🔄 อัพเดทก่อนดู"}
+              {syncDone ? "✅ อัพเดทแล้ว" : syncing ? "⏳..." : "🔄 อัพเดท"}
             </button>
             <a href={detailUrl} target="_blank" rel="noopener noreferrer"
-              className="h-10 flex items-center justify-center text-sm md:text-base font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
-              ดูรายละเอียด →
+              className="h-9 flex items-center justify-center text-xs font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/25 hover:text-white rounded-xl transition-all">
+              รายละเอียด →
             </a>
           </div>
         </div>
@@ -358,6 +364,7 @@ export function AvailabilityPage() {
   
   // Popup state
   const [popupData, setPopupData] = React.useState<any>(null);
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
   const LIMIT = 12;
 
   // ── Fetch houses ─────────────────────────────────────────────────────────
@@ -375,7 +382,13 @@ export function AvailabilityPage() {
       }
       const { data } = await axios.get(`/api/availability?${params}`);
       const newHouses: House[] = data.houses || [];
-      setHouses(prev => replace || pg === 1 ? newHouses : [...prev, ...newHouses]);
+      setHouses(prev => {
+        if (replace || pg === 1) return newHouses;
+        // Deduplicate: skip any house already present
+        const existingIds = new Set(prev.map(h => h.hId));
+        const unique = newHouses.filter(h => !existingIds.has(h.hId));
+        return [...prev, ...unique];
+      });
       setTotal(data.total || 0);
       setTotalHouses(data.totalHouses || data.total || 0);
       setHasMore(data.hasMore ?? false);
@@ -401,11 +414,23 @@ export function AvailabilityPage() {
   React.useEffect(() => { setPage(1); fetchHouses(1, true); }, [search, bed, maxPrice, swim, sel]);
   React.useEffect(() => { fetchHeatmap(); }, [month]);
 
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchHouses(next);
-  };
+  // Infinite scroll via IntersectionObserver
+  React.useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+          const next = page + 1;
+          setPage(next);
+          fetchHouses(next);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, page, fetchHouses]);
 
   const navM = (d: number) => setMonth(m => { const n = new Date(m); n.setMonth(n.getMonth() + d); return n; });
 
@@ -648,9 +673,9 @@ export function AvailabilityPage() {
 
               {/* Cards */}
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Array.from({length: 6}).map((_, i) => (
-                    <div key={i} className="h-[420px] rounded-2xl bg-[#1a1e29] animate-pulse border border-gray-800" />
+                    <div key={i} className="h-[380px] rounded-2xl bg-[#1a1e29] animate-pulse border border-gray-800" />
                   ))}
                 </div>
               ) : houses.length === 0 ? (
@@ -664,7 +689,8 @@ export function AvailabilityPage() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
+                  {/* 3-col grid: mobile=1, sm=2, lg=3 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {houses.map(h => (
                       <HouseCard key={h.hId} house={h} selectedDate={sel}
                         houseHeatmap={houseMap} month={month}
@@ -673,15 +699,17 @@ export function AvailabilityPage() {
                     ))}
                   </div>
 
-                  {/* Load more */}
-                  {hasMore && (
-                    <div className="mt-6 flex justify-center">
-                      <button onClick={loadMore} disabled={loadingMore}
-                        className="px-8 py-3 bg-gray-800 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 hover:border-emerald-500 font-bold rounded-2xl transition-all disabled:opacity-50 flex items-center gap-2">
-                        {loadingMore ? <><span className="animate-spin">⟳</span> กำลังโหลด...</> : "⬇️ โหลดเพิ่มอีก 12 หลัง"}
-                      </button>
-                    </div>
-                  )}
+                  {/* Infinite scroll sentinel */}
+                  <div ref={loadMoreRef} className="mt-6 flex justify-center h-10">
+                    {loadingMore && (
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="animate-spin text-lg">⟳</span> กำลังโหลดเพิ่ม...
+                      </div>
+                    )}
+                    {!hasMore && houses.length > 0 && (
+                      <p className="text-gray-600 text-xs">แสดงบ้านทั้งหมด {houses.length} หลัง</p>
+                    )}
+                  </div>
                 </>
               )}
             </div>

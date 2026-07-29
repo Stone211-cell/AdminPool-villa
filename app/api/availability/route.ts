@@ -105,8 +105,7 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json(
-        { heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt, holidays: fastHolidays },
-        { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+        { heatmap, houseHeatmap, totalHouses, dbMode: true, lastSyncAt, holidays: fastHolidays }
       );
     }
 
@@ -163,8 +162,7 @@ export async function GET(req: NextRequest) {
       const paginated = withStatus.slice(skip, skip + limit);
 
       return NextResponse.json(
-        { houses: paginated, dbMode: true, total: allHouses.length, totalHouses, date, lastSyncAt, page, hasMore: skip + limit < allHouses.length },
-        { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+        { houses: paginated, dbMode: true, total: allHouses.length, totalHouses, date, lastSyncAt, page, hasMore: skip + limit < allHouses.length }
       );
     }
 
@@ -184,8 +182,7 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json(
-      { houses, dbMode: true, total, totalHouses, lastSyncAt, page, hasMore: skip + limit < total },
-      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+      { houses, dbMode: true, total, totalHouses, lastSyncAt, page, hasMore: skip + limit < total }
     );
 
   } catch (err) {

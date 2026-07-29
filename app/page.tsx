@@ -3,9 +3,11 @@ import { LineRichMenu } from "@/components/LineRichMenu";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
-  title: "POOL VILLA | จองบ้านพักพูลวิลล่าส่วนตัว ราคาพิเศษ",
-  description: "จองบ้านพักพูลวิลล่าส่วนตัวที่ดีที่สุด พร้อมโปรโมชั่นมากมาย",
+  title: "BAITONG POOLVILLA | บ้านพักพูลวิลล่า พัทยา สัตหีบ ราคาพิเศษ",
+  description: "จองบ้านพักพูลวิลล่าส่วนตัวที่ดีที่สุดในพัทยา สัตหีบ โทร 093-562-2211 ใบตอง",
 };
 
 export default async function CustomerLandingPage() {
