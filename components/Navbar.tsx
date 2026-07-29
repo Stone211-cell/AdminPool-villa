@@ -39,7 +39,7 @@ export function Navbar() {
           {/* Center Links (Desktop) */}
           <div className="hidden md:flex space-x-8">
             <Link href="/" className="text-sm font-semibold text-gray-700 hover:text-[#ff758f] transition-colors">{t("home")}</Link>
-            <Link href="#" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("article")}</Link>
+            <Link href="/articles" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("article")}</Link>
             <Link href="/contact" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("contact")}</Link>
           </div>
 

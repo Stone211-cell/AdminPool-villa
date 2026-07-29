@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 };
 
 import { I18nProvider } from "@/components/I18nProvider";
+import { AosInit } from "@/components/AosInit";
+import { FloatingDuck } from "@/components/FloatingDuck";
 
 export default function RootLayout({
   children,
@@ -29,12 +31,14 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="th"
-        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased text-base md:text-lg`}
       >
-        <body className="min-h-full flex flex-col">
+        <body className="min-h-full flex flex-col font-sans">
+          <AosInit />
           <I18nProvider>
             {children}
           </I18nProvider>
+          <FloatingDuck />
         </body>
       </html>
     </ClerkProvider>

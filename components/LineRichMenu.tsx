@@ -3,14 +3,14 @@
 export function LineRichMenu() {
   return (
     <a 
-      href="https://lin.ee/placeholder" 
+      href="/line-qr.jpg" 
       target="_blank" 
       rel="noreferrer"
       className="fixed bottom-6 right-6 z-50 group flex flex-col items-center hover:-translate-y-1 transition-transform"
     >
       <div className="relative">
         <img 
-          src="https://img.freepik.com/free-vector/cute-girl-smiling-cartoon-character_1308-133984.jpg" 
+          src="/logo.jpg" 
           alt="Contact" 
           className="w-16 h-16 rounded-full border-2 border-white shadow-lg object-cover"
         />
