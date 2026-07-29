@@ -42,7 +42,7 @@ export function FloatingDuck() {
     >
       {/* Massive duck 1 in the background (bottom right) */}
       <motion.div
-        className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-20 mix-blend-multiply"
+        className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-40 mix-blend-multiply"
         style={{
           bottom: '5%',
           right: '5%',
@@ -71,7 +71,7 @@ export function FloatingDuck() {
 
       {/* Massive duck 2 in the background (top left, rotated 65 deg) */}
       <motion.div
-        className="absolute w-[250px] h-[250px] md:w-[500px] md:h-[500px] drop-shadow-2xl opacity-[0.15] mix-blend-multiply"
+        className="absolute w-[250px] h-[250px] md:w-[500px] md:h-[500px] drop-shadow-2xl opacity-30 mix-blend-multiply"
         style={{
           top: '10%',
           left: '2%',
