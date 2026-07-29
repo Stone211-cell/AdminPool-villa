@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { LineRichMenu } from "@/components/LineRichMenu";
 import { BookingFlowModal } from "@/components/BookingFlowModal";
 
-export default async function VillaDetail({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function VillaDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   const house = await prisma.house.findUnique({
     where: { hId: id.replace('CITY-', '') },

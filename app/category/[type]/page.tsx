@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientSearch } from "@/components/ClientSearch"; // We can reuse ClientSearch with a slight modification or just build a grid here.
 
-export default async function CategoryPage({ params }: { params: { type: string } }) {
-  const type = params.type.toUpperCase();
+export default async function CategoryPage({ params }: { params: Promise<{ type: string }> }) {
+  const { type: rawType } = await params;
+  const type = rawType.toUpperCase();
   
   if (type !== "PROMOTION" && type !== "RECOMMENDED") {
     notFound();
