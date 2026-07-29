@@ -3,6 +3,7 @@ import { LineRichMenu } from "@/components/LineRichMenu";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ClientSearch } from "@/components/ClientSearch";
+import { ProfileSetupModal } from "@/components/ProfileSetupModal";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export default async function CustomerLandingPage() {
   return (
     <div className="min-h-screen font-sans overflow-x-hidden relative">
       <Navbar />
+      <ProfileSetupModal />
       
       {/* Hero Section */}
       <div className="relative pt-20 pb-32 flex flex-col items-center justify-center px-4">

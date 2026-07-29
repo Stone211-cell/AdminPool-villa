@@ -23,7 +23,6 @@ import { I18nProvider } from "@/components/I18nProvider";
 import { AosInit } from "@/components/AosInit";
 import { FloatingDuck } from "@/components/FloatingDuck";
 import { Footer } from "@/components/Footer";
-import { ProfileSetupModal } from "@/components/ProfileSetupModal";
 
 export default function RootLayout({
   children,
@@ -43,7 +42,6 @@ export default function RootLayout({
             <Footer />
           </I18nProvider>
           <FloatingDuck />
-          <ProfileSetupModal />
         </body>
       </html>
     </ClerkProvider>
