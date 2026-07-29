@@ -12,15 +12,18 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
   const itemsPerPage = 12; // 4 rows of 3 on desktop
 
   const filteredHouses = initialHouses.filter(house => {
-    // Search by hId or zone
     const matchSearch = house.hId.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (house.hZone && house.hZone.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Search by capacity
     const matchCapacity = house.people >= guests.adult + guests.child;
-    
     return matchSearch && matchCapacity;
   });
+
+  // Group houses (only used when no search is active)
+  const isSearching = searchTerm.length > 0 || guests.adult + guests.child > 0;
+  
+  const promoHouses = initialHouses.filter(h => h.category === "PROMOTION");
+  const recommendHouses = initialHouses.filter(h => h.category === "RECOMMENDED");
+  const otherHouses = initialHouses.filter(h => h.category !== "PROMOTION" && h.category !== "RECOMMENDED");
 
   // Reset page when filters change
   const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,8 +35,9 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.ceil(filteredHouses.length / itemsPerPage);
-  const paginatedHouses = filteredHouses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentDisplayHouses = isSearching ? filteredHouses : otherHouses;
+  const totalPages = Math.ceil(currentDisplayHouses.length / itemsPerPage);
+  const paginatedHouses = currentDisplayHouses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const renderPagination = () => {
     if (totalPages <= 1) return null;
@@ -52,18 +56,18 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
         <button 
           onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
           disabled={currentPage === 1} 
-          className="w-10 h-10 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          className="w-12 h-12 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg"
         >
           &lt;
         </button>
         {uniquePages.map((p, i) => (
           p === "..." ? (
-            <span key={i} className="text-gray-400 font-bold px-2">...</span>
+            <span key={i} className="text-gray-400 font-bold px-2 text-lg">...</span>
           ) : (
             <button 
               key={i} 
               onClick={() => setCurrentPage(p as number)} 
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${currentPage === p ? 'bg-[#ff758f] text-white shadow-md shadow-pink-200' : 'text-gray-600 hover:bg-pink-50 hover:text-[#ff758f]'}`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${currentPage === p ? 'bg-[#ff758f] text-white shadow-md shadow-pink-200' : 'text-gray-600 hover:bg-pink-50 hover:text-[#ff758f]'}`}
             >
               {p}
             </button>
@@ -72,7 +76,7 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
         <button 
           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
           disabled={currentPage === totalPages} 
-          className="w-10 h-10 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          className="w-12 h-12 rounded-full flex items-center justify-center border text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg"
         >
           &gt;
         </button>
@@ -80,30 +84,93 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
     );
   };
 
+  const renderHouseGrid = (housesToRender: any[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {housesToRender.map((house, i) => (
+        <Link 
+          href={`/villas/CITY-${house.hId}`} 
+          key={house.hId} 
+          className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 hover:-translate-y-1 transition-all group relative"
+          data-aos="fade-up"
+          data-aos-delay={(i % 3) * 100}
+        >
+          {/* Badge */}
+          {house.category === "PROMOTION" && (
+            <div className="absolute top-4 right-4 z-10 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md animate-pulse">
+              SALE
+            </div>
+          )}
+          {house.category === "RECOMMENDED" && (
+            <div className="absolute top-4 right-4 z-10 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-bold shadow-md">
+              ⭐ แนะนำ
+            </div>
+          )}
+          
+          <div className="relative h-64 bg-gray-200 overflow-hidden">
+            <img 
+              src={house.imgName || ""} 
+              alt={`CITY-${house.hId}`} 
+              onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=CITY-"+house.hId; }}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+            />
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-4 py-1.5 rounded-full text-sm font-bold text-gray-800 shadow-sm">
+              CITY-{house.hId}
+            </div>
+          </div>
+          <div className="p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3 line-clamp-1">บ้านพักพูลวิลล่า CITY-{house.hId}</h3>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="bg-pink-50 text-[#ff758f] px-3 py-1.5 rounded-lg text-sm font-bold">🛏️ {house.hBedroom} นอน</span>
+              <span className="bg-pink-50 text-[#ff758f] px-3 py-1.5 rounded-lg text-sm font-bold">🚿 {house.hToilet} น้ำ</span>
+              <span className="bg-pink-50 text-[#ff758f] px-3 py-1.5 rounded-lg text-sm font-bold">🧑 {house.people} คน</span>
+            </div>
+            <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-400 font-semibold mb-0.5">ราคาเริ่มต้น</p>
+                <p className="text-xl font-black text-gray-900">
+                  {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(house.price || 0))}
+                </p>
+              </div>
+              <div className="bg-[#ff758f] text-white px-5 py-2.5 rounded-xl text-base font-bold shadow-md shadow-pink-200 group-hover:bg-[#ff5c77] transition-colors">
+                ดูรายละเอียด
+              </div>
+            </div>
+          </div>
+        </Link>
+      ))}
+      {housesToRender.length === 0 && (
+         <div className="col-span-1 md:col-span-3 text-center py-20 text-gray-500 font-bold">
+           <div className="text-6xl mb-4">😢</div>
+           ไม่พบบ้านพักที่ตรงกับเงื่อนไข
+         </div>
+      )}
+    </div>
+  );
+
   return (
     <>
       {/* Search Bar */}
-      <div className="bg-white rounded-[2rem] shadow-xl p-2 md:p-3 w-full max-w-5xl z-20 flex flex-col md:flex-row items-center border border-pink-50 gap-2 relative mt-4 mx-auto" data-aos="fade-up">
+      <div className="bg-white rounded-[2rem] shadow-xl p-3 md:p-4 w-full max-w-5xl z-20 flex flex-col md:flex-row items-center border border-pink-50 gap-3 relative mt-4 mx-auto" data-aos="fade-up">
         
         <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           <input 
             type="text" 
             placeholder="ค้นหาชื่อบ้าน, รหัส หรือ โซน" 
-            className="w-full bg-transparent focus:outline-none text-sm font-semibold text-gray-700 placeholder-gray-400" 
+            className="w-full bg-transparent focus:outline-none text-base font-semibold text-gray-700 placeholder-gray-400" 
             value={searchTerm}
             onChange={handleSearchTermChange}
           />
         </div>
 
         <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100 cursor-pointer hover:bg-pink-50 rounded-xl transition-colors">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          <span className="text-sm font-semibold text-gray-700">เลือกวันเข้าพัก (Coming Soon)</span>
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span className="text-base font-semibold text-gray-700">เลือกวันเข้าพัก (Coming Soon)</span>
         </div>
 
         <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full cursor-pointer hover:bg-pink-50 rounded-xl transition-colors relative group">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-          <span className="text-sm font-semibold text-gray-700">
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+          <span className="text-base font-semibold text-gray-700">
             ผู้เข้าพัก {guests.adult + guests.child > 0 ? `(${guests.adult + guests.child} คน)` : ''}
           </span>
 
@@ -116,95 +183,96 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
              ].map(item => (
                <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                   <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-[#ff758f] font-bold">
+                     <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center text-[#ff758f] font-bold text-xl">
                        {item.id === "adult" && "🧑"}
                        {item.id === "child" && "👶"}
                        {item.id === "pet" && "🐾"}
                      </div>
                      <div>
-                       <p className="text-sm font-bold text-gray-700">{item.label}</p>
-                       {item.desc && <p className="text-[10px] text-gray-400">{item.desc}</p>}
+                       <p className="text-base font-bold text-gray-700">{item.label}</p>
+                       {item.desc && <p className="text-xs text-gray-400">{item.desc}</p>}
                      </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: Math.max(0, guests[item.id as keyof typeof guests] - 1) })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">-</button>
-                    <span className="w-4 text-center font-bold text-gray-700">{guests[item.id as keyof typeof guests]}</span>
-                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: guests[item.id as keyof typeof guests] + 1 })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">+</button>
+                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: Math.max(0, guests[item.id as keyof typeof guests] - 1) })} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold text-lg">-</button>
+                    <span className="w-6 text-center font-bold text-gray-700 text-lg">{guests[item.id as keyof typeof guests]}</span>
+                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: guests[item.id as keyof typeof guests] + 1 })} className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold text-lg">+</button>
                   </div>
                </div>
              ))}
           </div>
         </div>
 
-        <button className="bg-[#ff758f] hover:bg-[#ff5c77] text-white px-8 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2 shadow-lg shadow-pink-200">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <button className="bg-[#ff758f] hover:bg-[#ff5c77] text-white px-10 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2 shadow-lg shadow-pink-200 text-lg">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           ค้นหา
         </button>
       </div>
 
       {/* House List Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-20">
-        <div className="flex items-end justify-between mb-8" data-aos="fade-up">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 mb-2">
-              {searchTerm || guests.adult + guests.child > 0 ? "ผลการค้นหา" : "บ้านพักแนะนำสำหรับคุณ"}
-            </h2>
-            <p className="text-gray-500">
-              พบ {filteredHouses.length} หลัง
-            </p>
+        
+        {isSearching ? (
+          /* Search Results View */
+          <div className="mb-16">
+            <div className="flex items-end justify-between mb-8" data-aos="fade-up">
+              <div>
+                <h2 className="text-4xl font-black text-gray-900 mb-2">ผลการค้นหา</h2>
+                <p className="text-lg text-gray-500">พบ {filteredHouses.length} หลัง</p>
+              </div>
+            </div>
+            {renderHouseGrid(paginatedHouses)}
+            {renderPagination()}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {paginatedHouses.map((house, i) => (
-            <Link 
-              href={`/villas/CITY-${house.hId}`} 
-              key={house.hId} 
-              className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 hover:-translate-y-1 transition-all group"
-              data-aos="fade-up"
-              data-aos-delay={(i % 3) * 100}
-            >
-              <div className="relative h-56 bg-gray-200 overflow-hidden">
-                <img 
-                  src={house.imgName || ""} 
-                  alt={`CITY-${house.hId}`} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                />
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
-                  CITY-{house.hId}
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">บ้านพักพูลวิลล่า CITY-{house.hId}</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="bg-pink-50 text-[#ff758f] px-2 py-1 rounded-lg text-xs font-bold">🛏️ {house.hBedroom} นอน</span>
-                  <span className="bg-pink-50 text-[#ff758f] px-2 py-1 rounded-lg text-xs font-bold">🚿 {house.hToilet} น้ำ</span>
-                  <span className="bg-pink-50 text-[#ff758f] px-2 py-1 rounded-lg text-xs font-bold">🧑 {house.people} คน</span>
-                </div>
-                <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
+        ) : (
+          /* Categorized Landing View */
+          <>
+            {/* PROMOTION Section */}
+            {promoHouses.length > 0 && (
+              <div className="mb-16">
+                <div className="flex items-end justify-between mb-8" data-aos="fade-up">
                   <div>
-                    <p className="text-xs text-gray-400 font-semibold mb-0.5">ราคาเริ่มต้น</p>
-                    <p className="text-lg font-black text-gray-900">
-                      {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(house.price || 0))}
-                    </p>
+                    <h2 className="text-4xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าราคาโปรโมชั่น</h2>
+                    <p className="text-lg text-gray-500">บ้านพักพลูวิลล่าราคาโปรโมชั่น ON SALE ลดสูงสุด 20-40%</p>
                   </div>
-                  <div className="bg-[#ff758f] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md shadow-pink-200 group-hover:bg-[#ff5c77] transition-colors">
-                    ดูรายละเอียด
+                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-2 hover:text-[#ff5c77] transition-colors text-lg bg-pink-50 px-6 py-2 rounded-full">
+                    ดูทั้งหมด <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  </button>
+                </div>
+                {renderHouseGrid(promoHouses)}
+              </div>
+            )}
+
+            {/* RECOMMENDED Section */}
+            {recommendHouses.length > 0 && (
+              <div className="mb-16">
+                <div className="flex items-end justify-between mb-8" data-aos="fade-up">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าแนะนำ</h2>
+                    <p className="text-lg text-gray-500">คัดสรรบ้านพักยอดฮิตจากผู้เข้าพักจริง การันตีความประทับใจ</p>
                   </div>
+                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-2 hover:text-[#ff5c77] transition-colors text-lg bg-pink-50 px-6 py-2 rounded-full">
+                    ดูทั้งหมด <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  </button>
+                </div>
+                {renderHouseGrid(recommendHouses)}
+              </div>
+            )}
+
+            {/* NORMAL/OTHER Section */}
+            <div className="mb-16">
+              <div className="flex items-end justify-between mb-8" data-aos="fade-up">
+                <div>
+                  <h2 className="text-4xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าทั้งหมด</h2>
+                  <p className="text-lg text-gray-500">เลือกชมบ้านพักพูลวิลล่าทั้งหมดของเรา</p>
                 </div>
               </div>
-            </Link>
-          ))}
-          {filteredHouses.length === 0 && (
-             <div className="col-span-1 md:col-span-3 text-center py-20 text-gray-500 font-bold">
-               <div className="text-6xl mb-4">😢</div>
-               ไม่พบบ้านพักที่ตรงกับเงื่อนไขการค้นหา
-             </div>
-          )}
-        </div>
+              {renderHouseGrid(paginatedHouses)}
+              {renderPagination()}
+            </div>
+          </>
+        )}
 
-        {/* Render Pagination */}
-        {renderPagination()}
       </div>
     </>
   );

@@ -38,32 +38,65 @@ export function FloatingDuck() {
 
   return (
     <motion.div 
-      className="fixed -z-10 pointer-events-none" // -z-10 puts it in the background relative to content
-      style={{
-        bottom: '5%',
-        right: '5%',
-        y: useTransform(smoothScrollY, (y) => (y * 0.5) + bobbing), // Parallax effect
-        rotateX,
-        rotateY,
-        rotateZ,
-        perspective: 1000,
-      }}
+      className="fixed inset-0 pointer-events-none -z-10" // Container spans screen, behind everything
     >
-      {/* Massive duck in the background */}
-      <div className="w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-20 mix-blend-multiply">
+      {/* Massive duck 1 in the background (bottom right) */}
+      <motion.div
+        className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-20 mix-blend-multiply"
+        style={{
+          bottom: '5%',
+          right: '5%',
+          y: useTransform(smoothScrollY, (y) => (y * 0.5) + bobbing),
+          rotateX,
+          rotateY,
+          rotateZ,
+          perspective: 1000,
+        }}
+      >
         {/* Yellow Rubber Duck SVG */}
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
           {/* Body */}
-          <path d="M75 55C75 75 60 85 45 85C20 85 10 70 10 60C10 50 25 50 35 50C45 50 50 45 50 35C50 25 60 20 70 20C80 20 85 25 85 35C85 45 75 45 75 55Z" fill="#FFD700" stroke="#E6B800" strokeWidth="2" strokeLinejoin="round"/>
-          {/* Wing */}
-          <path d="M25 65C30 75 45 75 50 65C45 60 30 60 25 65Z" fill="#FFC000" />
+          <path d="M 20 60 C 20 80, 80 80, 80 60 C 80 50, 70 45, 60 45 L 40 45 C 30 45, 20 50, 20 60 Z" fill="#FFE066" />
+          {/* Head */}
+          <circle cx="70" cy="35" r="15" fill="#FFE066" />
           {/* Eye */}
-          <circle cx="68" cy="30" r="4" fill="#000" />
-          <circle cx="69" cy="29" r="1.5" fill="#FFF" />
+          <circle cx="75" cy="30" r="3" fill="#333" />
+          <circle cx="76" cy="29" r="1" fill="#FFF" />
           {/* Beak */}
-          <path d="M82 32C90 32 95 35 95 38C95 41 85 42 78 40C78 35 80 32 82 32Z" fill="#FF6B00" stroke="#CC5500" strokeWidth="1" strokeLinejoin="round"/>
+          <path d="M 82 35 C 90 35, 95 38, 95 40 C 95 42, 90 45, 82 45 C 80 45, 80 35, 82 35 Z" fill="#FF9F1C" />
+          {/* Wing */}
+          <path d="M 35 60 C 35 70, 55 70, 55 60 C 55 55, 45 55, 35 60 Z" fill="#FFD13B" />
         </svg>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+
+      {/* Massive duck 2 in the background (top left, rotated 65 deg) */}
+      <motion.div
+        className="absolute w-[250px] h-[250px] md:w-[500px] md:h-[500px] drop-shadow-2xl opacity-[0.15] mix-blend-multiply"
+        style={{
+          top: '10%',
+          left: '2%',
+          y: useTransform(smoothScrollY, (y) => (y * -0.3) + bobbing), // moves up when scrolling down
+          rotate: -65, // Rotated upside down / 65 degrees
+          rotateX,
+          rotateY,
+          perspective: 1000,
+        }}
+      >
+        {/* Yellow Rubber Duck SVG */}
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+          {/* Body */}
+          <path d="M 20 60 C 20 80, 80 80, 80 60 C 80 50, 70 45, 60 45 L 40 45 C 30 45, 20 50, 20 60 Z" fill="#FFE066" />
+          {/* Head */}
+          <circle cx="70" cy="35" r="15" fill="#FFE066" />
+          {/* Eye */}
+          <circle cx="75" cy="30" r="3" fill="#333" />
+          <circle cx="76" cy="29" r="1" fill="#FFF" />
+          {/* Beak */}
+          <path d="M 82 35 C 90 35, 95 38, 95 40 C 95 42, 90 45, 82 45 C 80 45, 80 35, 82 35 Z" fill="#FF9F1C" />
+          {/* Wing */}
+          <path d="M 35 60 C 35 70, 55 70, 55 60 C 55 55, 45 55, 35 60 Z" fill="#FFD13B" />
+        </svg>
+      </motion.div>
+
+    </motion.div>  );
 }
