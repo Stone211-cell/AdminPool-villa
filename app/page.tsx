@@ -16,6 +16,12 @@ export default async function CustomerLandingPage() {
     orderBy: { createdAt: "desc" }
   });
 
+  const articles = await prisma.article.findMany({
+    where: { published: true },
+    orderBy: { createdAt: "desc" },
+    take: 3
+  });
+
   return (
     <div className="min-h-screen font-sans overflow-x-hidden relative">
       <Navbar />
@@ -49,7 +55,7 @@ export default async function CustomerLandingPage() {
       </div>
 
       {/* Client Search and House List */}
-      <ClientSearch initialHouses={houses} />
+      <ClientSearch initialHouses={houses} articles={articles} />
 
       <LineRichMenu />
     </div>

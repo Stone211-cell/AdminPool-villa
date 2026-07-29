@@ -3,26 +3,49 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
+interface ClientSearchProps {
+  initialHouses: any[];
+  articles?: any[];
+}
+
+export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [guests, setGuests] = useState({ adult: 0, child: 0, pet: 0 });
 
-  // Pagination logic
+  // Filter out houses without an image
+  const validHouses = initialHouses.filter(house => house.imgName && house.imgName.trim() !== "");
+
+  // Pagination logic for main search
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // 4 rows of 3 on desktop
 
-  const filteredHouses = initialHouses.filter(house => {
+  // Pagination logic for categories
+  const [promoPage, setPromoPage] = useState(0);
+  const [recommendPage, setRecommendPage] = useState(0);
+  const catItemsPerPage = 6;
+
+  const matchGuests = (house: any) => {
+    return house.people >= guests.adult + guests.child;
+  };
+
+  const filteredHouses = validHouses.filter(house => {
     const matchSearch = house.hId.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (house.hZone && house.hZone.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchCapacity = house.people >= guests.adult + guests.child;
-    return matchSearch && matchCapacity;
+    return matchSearch && matchGuests(house);
   });
 
-  // Group houses (only used when no search is active)
-  const isSearching = searchTerm.length > 0 || guests.adult + guests.child > 0;
-  
-  const promoHouses = initialHouses.filter(h => h.category === "PROMOTION");
-  const recommendHouses = initialHouses.filter(h => h.category === "RECOMMENDED");
+
+  const isSearching = searchTerm.length > 0 || guests.adult > 0 || guests.child > 0 || guests.pet > 0;
+
+  // Categories
+  const promoHousesAll = validHouses.filter(h => h.category === "PROMOTION");
+  const recommendHousesAll = validHouses.filter(h => h.category === "RECOMMENDED");
+
+  const promoHouses = promoHousesAll.slice(promoPage * catItemsPerPage, (promoPage + 1) * catItemsPerPage);
+  const recommendHouses = recommendHousesAll.slice(recommendPage * catItemsPerPage, (recommendPage + 1) * catItemsPerPage);
+
+  const totalPromoPages = Math.ceil(promoHousesAll.length / catItemsPerPage);
+  const totalRecommendPages = Math.ceil(recommendHousesAll.length / catItemsPerPage);
   const otherHouses = initialHouses.filter(h => h.category !== "PROMOTION" && h.category !== "RECOMMENDED");
 
   // Reset page when filters change
@@ -147,6 +170,22 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
     </div>
   );
 
+  const renderDotsPagination = (currentPage: number, totalPages: number, setPage: (p: number) => void) => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex justify-center items-center gap-2 mt-8">
+        {Array.from({ length: totalPages }).map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setPage(i)}
+            className={`w-3 h-3 rounded-full transition-all ${currentPage === i ? 'bg-[#ff758f] w-6' : 'bg-gray-300 hover:bg-pink-300'}`}
+            aria-label={`Page ${i + 1}`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Search Bar */}
@@ -227,24 +266,8 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
         ) : (
           /* Categorized Landing View */
           <>
-            {/* PROMOTION Section */}
-            {promoHouses.length > 0 && (
-              <div className="mb-16">
-                <div className="flex items-end justify-between mb-8" data-aos="fade-up">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าราคาโปรโมชั่น</h2>
-                    <p className="text-gray-500">บ้านพักพลูวิลล่าราคาโปรโมชั่น ON SALE ลดสูงสุด 20-40%</p>
-                  </div>
-                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
-                    ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </button>
-                </div>
-                {renderHouseGrid(promoHouses)}
-              </div>
-            )}
-
-            {/* RECOMMENDED Section */}
-            {recommendHouses.length > 0 && (
+            {/* RECOMMENDED Section (Section 1) */}
+            {recommendHousesAll.length > 0 && (
               <div className="mb-16">
                 <div className="flex items-end justify-between mb-8" data-aos="fade-up">
                   <div>
@@ -256,20 +279,71 @@ export function ClientSearch({ initialHouses }: { initialHouses: any[] }) {
                   </button>
                 </div>
                 {renderHouseGrid(recommendHouses)}
+                {renderDotsPagination(recommendPage, totalRecommendPages, setRecommendPage)}
               </div>
             )}
 
-            {/* NORMAL/OTHER Section */}
-            <div className="mb-16">
-              <div className="flex items-end justify-between mb-8" data-aos="fade-up">
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าทั้งหมด</h2>
-                  <p className="text-gray-500">เลือกชมบ้านพักพูลวิลล่าทั้งหมดของเรา</p>
+            {/* PROMOTION Section (Section 2) */}
+            {promoHousesAll.length > 0 && (
+              <div className="mb-16">
+                <div className="flex items-end justify-between mb-8" data-aos="fade-up">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าราคาโปรโมชั่น</h2>
+                    <p className="text-gray-500">บ้านพักพลูวิลล่าราคาโปรโมชั่น ON SALE ลดสูงสุด 20-40%</p>
+                  </div>
+                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
+                    ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  </button>
+                </div>
+                {renderHouseGrid(promoHouses)}
+                {renderDotsPagination(promoPage, totalPromoPages, setPromoPage)}
+              </div>
+            )}
+
+            {/* ARTICLES Section (Section 3) */}
+            {articles.length > 0 && (
+              <div className="mb-16">
+                <div className="flex items-end justify-between mb-8" data-aos="fade-up">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900 mb-2">บทความและข่าวสาร</h2>
+                    <p className="text-gray-500">อัพเดตเรื่องราว ทริคการท่องเที่ยว และโปรโมชั่นที่น่าสนใจ</p>
+                  </div>
+                  <Link href="/articles" className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
+                    ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                  </Link>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-aos="fade-up">
+                  {/* Main Article (Left) */}
+                  <Link href={`/articles/${articles[0].id}`} className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all h-[400px] lg:h-[500px]">
+                    <img src={articles[0].imageUrl || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={articles[0].title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
+                      <p className="text-white/80 text-sm font-bold mb-2">
+                        {new Date(articles[0].createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </p>
+                      <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2">{articles[0].title}</h3>
+                      <p className="text-white/70 line-clamp-2 text-sm">{articles[0].content}</p>
+                    </div>
+                  </Link>
+
+                  {/* Sub Articles (Right Stacked) */}
+                  <div className="flex flex-col gap-8 h-full">
+                    {articles.slice(1, 3).map((article: any, idx: number) => (
+                      <Link href={`/articles/${article.id}`} key={article.id} className="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex-1 min-h-[200px]">
+                        <img src={article.imageUrl || "https://placehold.co/800x400/ffe4e6/ff758f"} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+                          <p className="text-white/80 text-xs font-bold mb-1">
+                            {new Date(article.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </p>
+                          <h3 className="text-lg md:text-xl font-bold text-white mb-2 line-clamp-2">{article.title}</h3>
+                          <p className="text-white/70 line-clamp-1 text-xs">{article.content}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               </div>
-              {renderHouseGrid(paginatedHouses)}
-              {renderPagination()}
-            </div>
+            )}
           </>
         )}
 

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslation } from "./I18nProvider";
 
 export function Navbar() {
   const { lang, setLang, t } = useTranslation();
+  const pathname = usePathname();
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
 
@@ -38,9 +40,9 @@ export function Navbar() {
 
           {/* Center Links (Desktop) */}
           <div className="hidden md:flex space-x-8">
-            <Link href="/" className="text-sm font-semibold text-gray-700 hover:text-[#ff758f] transition-colors">{t("home")}</Link>
-            <Link href="/articles" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("article")}</Link>
-            <Link href="/contact" className="text-sm font-semibold text-gray-400 hover:text-[#ff758f] transition-colors">{t("contact")}</Link>
+            <Link href="/" className={`text-sm font-semibold transition-colors ${pathname === "/" ? "text-[#1f2937]" : "text-gray-400 hover:text-[#ff758f]"}`}>{t("home")}</Link>
+            <Link href="/articles" className={`text-sm font-semibold transition-colors ${pathname.startsWith("/articles") ? "text-[#1f2937]" : "text-gray-400 hover:text-[#ff758f]"}`}>{t("article")}</Link>
+            <Link href="/contact" className={`text-sm font-semibold transition-colors ${pathname === "/contact" ? "text-[#1f2937]" : "text-gray-400 hover:text-[#ff758f]"}`}>{t("contact")}</Link>
           </div>
 
           {/* Right Section */}

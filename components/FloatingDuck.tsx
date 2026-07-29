@@ -37,16 +37,14 @@ export function FloatingDuck() {
   const bobbing = Math.sin(time / 500) * 15;
 
   return (
-    <motion.div 
-      className="fixed inset-0 pointer-events-none -z-10" // Container spans screen, behind everything
-    >
+    <div className="fixed inset-0 pointer-events-none overflow-hidden -z-50">
       {/* Massive duck 1 in the background (bottom right) */}
       <motion.div
         className="absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] drop-shadow-2xl opacity-40 mix-blend-multiply"
         style={{
           bottom: '5%',
           right: '5%',
-          y: useTransform(smoothScrollY, (y) => (y * 0.5) + bobbing),
+          y: useTransform(smoothScrollY, (y) => (y * -0.1) + bobbing),
           rotateX,
           rotateY,
           rotateZ,
@@ -54,7 +52,7 @@ export function FloatingDuck() {
         }}
       >
         {/* Yellow Rubber Duck SVG */}
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg pointer-events-none">
           {/* Body */}
           <path d="M 20 60 C 20 80, 80 80, 80 60 C 80 50, 70 45, 60 45 L 40 45 C 30 45, 20 50, 20 60 Z" fill="#FFE066" />
           {/* Head */}
@@ -75,15 +73,15 @@ export function FloatingDuck() {
         style={{
           top: '10%',
           left: '2%',
-          y: useTransform(smoothScrollY, (y) => (y * -0.3) + bobbing), // moves up when scrolling down
-          rotate: -65, // Rotated upside down / 65 degrees
+          y: useTransform(smoothScrollY, (y) => (y * -0.1) + bobbing),
           rotateX,
           rotateY,
+          rotateZ: useTransform(rotateZ, r => r + 65),
           perspective: 1000,
         }}
       >
         {/* Yellow Rubber Duck SVG */}
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-lg pointer-events-none">
           {/* Body */}
           <path d="M 20 60 C 20 80, 80 80, 80 60 C 80 50, 70 45, 60 45 L 40 45 C 30 45, 20 50, 20 60 Z" fill="#FFE066" />
           {/* Head */}
@@ -98,5 +96,6 @@ export function FloatingDuck() {
         </svg>
       </motion.div>
 
-    </motion.div>  );
+    </div>
+  );
 }
