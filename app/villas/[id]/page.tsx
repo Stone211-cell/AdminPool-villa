@@ -2,7 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { LineRichMenu } from "@/components/LineRichMenu";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { CustomerCalendar } from "@/components/CustomerCalendar";
+import { BookingForm } from "@/components/BookingForm";
 
 export default async function HouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +16,15 @@ export default async function HouseDetailPage({ params }: { params: Promise<{ id
   if (!house) {
     return notFound();
   }
+
+  // Fetch similar houses in the same zone
+  const similarHouses = await prisma.house.findMany({
+    where: { 
+      id: { not: house.id },
+      hZone: house.hZone 
+    },
+    take: 3
+  });
 
   const priceFormatted = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(house.price || 0));
 
@@ -159,23 +168,36 @@ export default async function HouseDetailPage({ params }: { params: Promise<{ id
 
           {/* Right Sidebar - Calendar & Booking */}
           <div className="space-y-8">
-             {/* Sticky Box */}
-             <div className="sticky top-24">
-                <CustomerCalendar hId={house.hId} />
-                
-                <div className="mt-6 bg-white rounded-3xl p-6 shadow-xl border-2 border-pink-100">
-                   <p className="text-center font-bold text-gray-600 mb-4">สนใจจองบ้านพักหลังนี้?</p>
-                   <a href="https://lin.ee/xxxxx" target="_blank" rel="noreferrer" className="w-full bg-[#00B900] hover:bg-[#009900] text-white flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-green-200 transition-transform hover:-translate-y-1">
-                     <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.53 8.909 8.441 9.615.65.138 1.536.43 1.748 1.01.19.516.064 1.319.031 1.62-.095.89-.487 2.871-.595 3.398-.142.695.53.533.842.38 1.05-.515 5.626-3.328 8.04-5.918 2.213-2.352 3.493-5.266 3.493-8.105z"/></svg>
-                     ทัก LINE จองเลย
-                   </a>
-                   <p className="text-center text-xs text-gray-400 mt-4 font-semibold">หรือโทร. 093-562-2211 (ใบตอง)</p>
-                </div>
-             </div>
+             <BookingForm house={house} />
           </div>
         </div>
 
       </main>
+
+      {/* Similar Houses Section */}
+      {similarHouses.length > 0 && (
+        <section className="bg-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-black text-gray-900 mb-8">บ้านพักทำเลใกล้เคียง ({house.hZone})</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {similarHouses.map(simHouse => (
+                <a href={`/villas/${simHouse.hId}`} key={simHouse.id} className="group block bg-gray-50 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all">
+                  <div className="h-48 overflow-hidden relative">
+                    <img src={simHouse.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={`CITY-${simHouse.hId}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-gray-700 shadow-sm">
+                      {simHouse.people} ท่าน
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-bold text-lg text-gray-900 line-clamp-1 mb-1 group-hover:text-[#ff758f] transition-colors">พูลวิลล่า CITY-{simHouse.hId}</h3>
+                    <p className="text-[#ff758f] font-black">{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(simHouse.price || 0))} <span className="text-xs text-gray-500 font-semibold">/ คืน</span></p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <LineRichMenu />
     </div>

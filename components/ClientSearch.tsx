@@ -274,9 +274,9 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
                     <h2 className="text-3xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าแนะนำ</h2>
                     <p className="text-gray-500">คัดสรรบ้านพักยอดฮิตจากผู้เข้าพักจริง การันตีความประทับใจ</p>
                   </div>
-                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
+                  <Link href="/category/RECOMMENDED" className="hidden sm:flex bg-[#1f2937] text-white px-4 py-2 rounded-full text-sm font-bold items-center gap-1 hover:bg-gray-800 shadow-lg shadow-gray-200 transition-colors">
                     ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </button>
+                  </Link>
                 </div>
                 {renderHouseGrid(recommendHouses)}
                 {renderDotsPagination(recommendPage, totalRecommendPages, setRecommendPage)}
@@ -291,9 +291,9 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
                     <h2 className="text-3xl font-black text-gray-900 mb-2">บ้านพูลวิลล่าราคาโปรโมชั่น</h2>
                     <p className="text-gray-500">บ้านพักพลูวิลล่าราคาโปรโมชั่น ON SALE ลดสูงสุด 20-40%</p>
                   </div>
-                  <button className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
+                  <Link href="/category/PROMOTION" className="hidden sm:flex bg-[#1f2937] text-white px-4 py-2 rounded-full text-sm font-bold items-center gap-1 hover:bg-gray-800 shadow-lg shadow-gray-200 transition-colors">
                     ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                  </button>
+                  </Link>
                 </div>
                 {renderHouseGrid(promoHouses)}
                 {renderDotsPagination(promoPage, totalPromoPages, setPromoPage)}
@@ -308,7 +308,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
                     <h2 className="text-3xl font-black text-gray-900 mb-2">บทความและข่าวสาร</h2>
                     <p className="text-gray-500">อัพเดตเรื่องราว ทริคการท่องเที่ยว และโปรโมชั่นที่น่าสนใจ</p>
                   </div>
-                  <Link href="/articles" className="hidden sm:flex text-[#ff758f] font-bold items-center gap-1 hover:text-[#ff5c77] transition-colors">
+                  <Link href="/articles" className="hidden sm:flex bg-[#1f2937] text-white px-4 py-2 rounded-full text-sm font-bold items-center gap-1 hover:bg-gray-800 shadow-lg shadow-gray-200 transition-colors">
                     ดูทั้งหมด <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                   </Link>
                 </div>
