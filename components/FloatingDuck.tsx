@@ -38,7 +38,7 @@ export function FloatingDuck() {
 
   return (
     <motion.div 
-      className="fixed z-0 pointer-events-none" // z-0 puts it in the background relative to content
+      className="fixed -z-10 pointer-events-none" // -z-10 puts it in the background relative to content
       style={{
         bottom: '10%',
         right: '10%',

@@ -17,7 +17,7 @@ export default async function CustomerLandingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#fff5f8] font-sans overflow-x-hidden relative">
+    <div className="min-h-screen font-sans overflow-x-hidden relative">
       <Navbar />
       
       {/* Hero Section */}

@@ -16,7 +16,7 @@ export default async function ArticleDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div className="min-h-screen bg-[#fff5f8] font-sans">
+    <div className="min-h-screen font-sans">
       <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
