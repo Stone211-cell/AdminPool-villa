@@ -46,7 +46,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
 
   const totalPromoPages = Math.ceil(promoHousesAll.length / catItemsPerPage);
   const totalRecommendPages = Math.ceil(recommendHousesAll.length / catItemsPerPage);
-  const otherHouses = initialHouses.filter(h => h.category !== "PROMOTION" && h.category !== "RECOMMENDED");
+  const otherHouses = validHouses.filter(h => h.category !== "PROMOTION" && h.category !== "RECOMMENDED");
 
   // Reset page when filters change
   const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
