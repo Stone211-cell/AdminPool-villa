@@ -32,6 +32,7 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
         <img 
           src={house.imgName || "https://placehold.co/1200x800/ffe4e6/ff758f"} 
           alt={`พูลวิลล่า CITY-${house.hId}`}
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover opacity-80"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
@@ -147,8 +148,13 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {similarHouses.map(simHouse => (
                 <a href={`/villas/${simHouse.hId}`} key={simHouse.id} className="group block bg-gray-50 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100">
-                  <div className="h-48 overflow-hidden relative">
-                    <img src={simHouse.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={`CITY-${simHouse.hId}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className="relative h-48 overflow-hidden">
+                    <img 
+                      src={simHouse.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} 
+                      alt={`CITY-${simHouse.hId}`} 
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    />
                     <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full text-xs font-bold text-gray-700 shadow-sm border border-gray-200">
                       {simHouse.people} ท่าน
                     </div>

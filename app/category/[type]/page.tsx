@@ -31,7 +31,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
           {houses.map((house) => (
              <Link href={`/villas/${house.id}`} key={house.id} className="group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
                <div className="relative h-64 overflow-hidden">
-                 <img src={house.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} alt={`CITY-${house.hId}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                 <img 
+                    src={house.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} 
+                    alt={`CITY-${house.hId}`} 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                 />
                  {house.category === "PROMOTION" && (
                    <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg shadow-red-500/30">SALE</div>
                  )}

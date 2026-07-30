@@ -136,6 +136,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
             <img 
               src={house.imgName || ""} 
               alt={`CITY-${house.hId}`} 
+              referrerPolicy="no-referrer"
               onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=CITY-"+house.hId; }}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             />
