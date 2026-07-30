@@ -28,6 +28,6 @@ jobs:
       - name: Run Scraper
         env:
           # ต้องไปเพิ่มตัวแปรนี้ใน GitHub > Settings > Secrets and variables > Actions
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          SUPABASE_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: npx tsx scripts/scrape-houses.ts --detail
