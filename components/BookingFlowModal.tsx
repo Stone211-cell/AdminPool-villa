@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth, useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 const THAI_MONTHS_FULL = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const THAI_DAYS = ["อา.","จ.","อ.","พ.","พฤ.","ศ.","ส."];
@@ -69,7 +70,7 @@ export function BookingFlowModal({ house }: { house: any }) {
         params: { y: d.getFullYear(), m: d.getMonth() + 1 }
       });
       // We assume date-info now returns more details or we just use default house price
-      setHeatmap(data.heatmap || {});
+      setHeatmap(prev => ({ ...prev, ...(data.heatmap || {}) }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -104,16 +105,27 @@ export function BookingFlowModal({ house }: { house: any }) {
   };
 
   const calculatePrice = (start: Date, end: Date) => {
+    let totalPrice = 0;
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    // Simplified price calculation
-    const totalPrice = house.price * diffDays;
+    
+    // Sum price from heatmap for each night
+    const curr = new Date(start);
+    for (let i = 0; i < diffDays; i++) {
+      const y = curr.getFullYear();
+      const m = String(curr.getMonth() + 1).padStart(2, "0");
+      const d = String(curr.getDate()).padStart(2, "0");
+      const key = `${y}-${m}-${d}`;
+      totalPrice += heatmap[key]?.price || house.price;
+      curr.setDate(curr.getDate() + 1);
+    }
+    
     setPriceDetails({ nights: diffDays, totalPrice });
   };
 
   const handleNext = () => {
-    if (step === 1 && (!checkIn || !checkOut)) return alert("กรุณาเลือกวันเช็คอินและเช็คเอาท์");
-    if (step === 2 && (!formData.name || !formData.phone)) return alert("กรุณากรอกข้อมูลติดต่อให้ครบถ้วน");
+    if (step === 1 && (!checkIn || !checkOut)) return toast.error("กรุณาเลือกวันเช็คอินและเช็คเอาท์");
+    if (step === 2 && (!formData.name || !formData.phone)) return toast.error("กรุณากรอกข้อมูลติดต่อให้ครบถ้วน");
     setStep(s => s + 1);
   };
 
