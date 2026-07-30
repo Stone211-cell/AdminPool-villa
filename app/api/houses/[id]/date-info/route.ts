@@ -6,20 +6,21 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const hId = (await params).id;
   const dateStr = req.nextUrl.searchParams.get("date");
-  if (!dateStr) return NextResponse.json({ error: "Missing date" }, { status: 400 });
+  const yearStr = req.nextUrl.searchParams.get("y");
+  const monthStr = req.nextUrl.searchParams.get("m");
+
+  if (!dateStr && (!yearStr || !monthStr)) {
+    return NextResponse.json({ error: "Missing date or y,m" }, { status: 400 });
+  }
 
   try {
-    const dayStart = new Date(dateStr + "T00:00:00.000Z");
-    const dayEnd = new Date(dateStr + "T23:59:59.999Z");
-    const dayOfWeek = dayStart.getUTCDay(); // 0 = Sun, 1 = Mon...
-
     const house = await prisma.house.findUnique({
       where: { hId },
       include: {
         detail: true,
         basePrices: true,
-        bookings: { where: { checkIn: { lt: dayEnd }, checkOut: { gt: dayStart } } },
-        holidays: { where: { start: { lte: dayEnd }, end: { gte: dayStart } } }
+        bookings: true, // We will filter in memory for month heatmap to save complex queries
+        holidays: true
       }
     });
 
@@ -30,61 +31,84 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const bookings = house.bookings;
     const holidays = house.holidays;
 
-    // Determine Status
-    let status = "free";
-    let currentPrice = house.price;
-    let oldPrice = null;
+    // Helper to calculate status and price for a specific date
+    const getDayInfo = (dayStart: Date, dayEnd: Date) => {
+      const dayOfWeek = dayStart.getUTCDay(); // 0 = Sun, 1 = Mon...
+      let status = "free";
+      let currentPrice = house.price;
+      let oldPrice = null;
 
-    // Calculate Base Price for the day
-    if (basePrice) {
-      const prices = [
-        basePrice.priceSun, basePrice.priceMon, basePrice.priceTue,
-        basePrice.priceWed, basePrice.priceThu, basePrice.priceFri, basePrice.priceSat
-      ];
-      if (prices[dayOfWeek] > 0) currentPrice = prices[dayOfWeek];
-    }
-
-    // Apply Holiday / Hotpro
-    let activeHoliday = null;
-    if (holidays.length > 0) {
-      activeHoliday = holidays[0]; // Take first match
-      if (activeHoliday.type === "hotpro") {
-        status = "hotpro";
-        oldPrice = currentPrice;
-        currentPrice = activeHoliday.price;
-      } else {
-        status = "holiday";
-        currentPrice = activeHoliday.price;
+      // Calculate Base Price for the day
+      if (basePrice) {
+        const prices = [
+          basePrice.priceSun, basePrice.priceMon, basePrice.priceTue,
+          basePrice.priceWed, basePrice.priceThu, basePrice.priceFri, basePrice.priceSat
+        ];
+        if (prices[dayOfWeek] > 0) currentPrice = prices[dayOfWeek];
       }
+
+      // Apply Holiday / Hotpro
+      let activeHoliday = holidays.find(h => h.start <= dayEnd && h.end >= dayStart);
+      if (activeHoliday) {
+        if (activeHoliday.type === "hotpro") {
+          status = "hotpro";
+          oldPrice = currentPrice;
+          currentPrice = activeHoliday.price;
+        } else {
+          status = "holiday";
+          currentPrice = activeHoliday.price;
+        }
+      }
+
+      // Apply Bookings (Overrides Holiday/Hotpro status)
+      const activeBooking = bookings.find(b => b.checkIn < dayEnd && b.checkOut > dayStart);
+      if (activeBooking) {
+        if (activeBooking.bookType === "waiting") status = "waiting";
+        else if (activeBooking.bookType === "repair") status = "repair";
+        else status = "booked";
+      }
+
+      const extraAdult = detail?.extra || 0;
+      let extraPet = 500;
+      if (detail?.moreDetail?.includes("สัตว์เลี้ยง") && detail.moreDetail.includes("500")) extraPet = 500;
+      else if (detail?.moreDetail?.includes("สัตว์เลี้ยง") && detail.moreDetail.includes("300")) extraPet = 300;
+
+      return {
+        status,
+        price: currentPrice,
+        oldPrice,
+        people: activeHoliday?.people || house.people,
+        extraAdult,
+        extraChild: 0,
+        extraPet,
+        petFriendly: house.pet
+      };
+    };
+
+    // If requesting a specific day
+    if (dateStr) {
+      const dayStart = new Date(dateStr + "T00:00:00.000Z");
+      const dayEnd = new Date(dateStr + "T23:59:59.999Z");
+      const info = getDayInfo(dayStart, dayEnd);
+      return NextResponse.json({ hId, date: dateStr, ...info });
     }
 
-    // Apply Bookings (Overrides Holiday/Hotpro status)
-    if (bookings.length > 0) {
-      const b = bookings[0];
-      if (b.bookType === "waiting") status = "waiting";
-      else if (b.bookType === "repair") status = "repair";
-      else status = "booked";
+    // If requesting a whole month heatmap
+    if (yearStr && monthStr) {
+      const y = parseInt(yearStr);
+      const m = parseInt(monthStr); // 1-indexed
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const heatmap: Record<string, any> = {};
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+        const dayEnd = new Date(`${dateKey}T23:59:59.999Z`);
+        const info = getDayInfo(dayStart, dayEnd);
+        heatmap[dateKey] = info;
+      }
+      return NextResponse.json({ heatmap });
     }
-
-    // Parse extra info
-    const extraAdult = detail?.extra || 0;
-    const extraChild = 0; // Usually 0 or not strictly structured
-    let extraPet = 500; // Default or parse from moreDetail
-    if (detail?.moreDetail?.includes("สัตว์เลี้ยง") && detail.moreDetail.includes("500")) extraPet = 500;
-    else if (detail?.moreDetail?.includes("สัตว์เลี้ยง") && detail.moreDetail.includes("300")) extraPet = 300;
-
-    return NextResponse.json({
-      hId,
-      date: dateStr,
-      status,
-      price: currentPrice,
-      oldPrice,
-      people: activeHoliday?.people || house.people,
-      extraAdult,
-      extraChild,
-      extraPet,
-      petFriendly: house.pet
-    });
 
   } catch (error: any) {
     console.error(error);

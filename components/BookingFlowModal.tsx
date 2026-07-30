@@ -123,7 +123,7 @@ export function BookingFlowModal({ house }: { house: any }) {
     const cod = checkOut?.toLocaleDateString('th-TH') || "";
     const message = `[จองบ้านพัก]\nบ้าน: CITY-${house.hId}\nเช็คอิน: ${cid}\nเช็คเอาท์: ${cod}\nจำนวนคืน: ${priceDetails.nights} คืน\nผู้เข้าพัก: ผู้ใหญ่ ${formData.adult} เด็ก ${formData.child} สัตว์เลี้ยง ${formData.pet}\nรวมยอดที่พัก: ${priceDetails.totalPrice.toLocaleString()} บาท\nยอดมัดจำ(60%): ${deposit.toLocaleString()} บาท\n\nชื่อลูกค้า: ${formData.name}\nเบอร์โทร: ${formData.phone}\n${formData.email ? `อีเมล: ${formData.email}\n` : ''}${formData.note ? `หมายเหตุ: ${formData.note}` : ''}`;
     
-    window.location.href = `https://line.me/R/oaMessage/@villadd/?${encodeURIComponent(message)}`;
+    window.open(`https://line.me/R/oaMessage/@villadd/?${encodeURIComponent(message)}`, '_blank');
   };
 
   // Calendar render logic
