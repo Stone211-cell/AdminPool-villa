@@ -1,6 +1,7 @@
 // app/api/availability/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { resolveHouseImage } from "@/lib/utils/image";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +157,7 @@ export async function GET(req: NextRequest) {
       const withStatus = allHouses.map(h => ({ 
         ...h, 
         dayStatus: statusMap.get(h.hId) || "free",
-        imgName: h.imgName?.replace('https://poolvillacity.co.th', 'https://sgp1.digitaloceanspaces.com/villapaza-spaces') 
+        imgName: resolveHouseImage(h.imgName) 
       }));
       const skip = (page - 1) * limit;
       const paginated = withStatus.slice(skip, skip + limit);
@@ -178,7 +179,7 @@ export async function GET(req: NextRequest) {
       include: { detail: true, basePrices: true }
     })).map(h => ({
       ...h,
-      imgName: h.imgName?.replace('https://poolvillacity.co.th', 'https://sgp1.digitaloceanspaces.com/villapaza-spaces')
+      imgName: resolveHouseImage(h.imgName)
     }));
 
     return NextResponse.json(

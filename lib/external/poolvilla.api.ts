@@ -9,8 +9,14 @@ export const POOLVILLA_IMAGE_BASE = "https://sgp1.digitaloceanspaces.com/villapa
 export const POOLVILLA_SITE = "https://poolvillacity.co.th";
 
 /** URL รูปภาพจาก path ที่ API ส่งมา */
-export const toImageUrl = (path: string | undefined): string =>
-  path ? `${POOLVILLA_IMAGE_BASE}${path}` : "";
+export const toImageUrl = (path: string | undefined): string => {
+  if (!path) return "";
+  // path จาก API ขึ้นต้นด้วย /public/images/... ต่อกับ SPACES_BASE ได้ตรง
+  if (path.startsWith("/")) return `${POOLVILLA_IMAGE_BASE}${path}`;
+  // กรณีมี URL เต็มอยู่แล้ว
+  if (path.startsWith("http")) return path;
+  return `${POOLVILLA_IMAGE_BASE}/${path}`;
+};
 
 /** URL หน้ารายละเอียดบ้านในเว็บต้นฉบับ */
 export const toDetailUrl = (hId: string): string =>

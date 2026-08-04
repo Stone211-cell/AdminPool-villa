@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
+import { resolveHouseImage } from "@/lib/utils/image";
 
 // ---- Types ----
 type LiffProfile = { userId: string; displayName: string; pictureUrl?: string };
@@ -244,7 +244,7 @@ export default function LiffPage() {
             const price = h.basePrices?.[0]
               ? calcNightPrice(h.basePrices, new Date(checkIn), new Date(checkOut)) / Math.max(nights, 1)
               : h.price;
-            const imgUrl = h.imgName?.includes("http") ? h.imgName : `https://sgp1.digitaloceanspaces.com/villapaza-spaces/${h.imgName}`;
+            const imgUrl = resolveHouseImage(h.imgName);
 
             return (
               <div key={h.hId} onClick={() => { setSelectedHouse(h); setStep("fill-info"); }}
@@ -289,7 +289,7 @@ export default function LiffPage() {
         {selectedHouse && (
           <div style={{ ...styles.card, marginBottom: 20, display: "flex", gap: 14, alignItems: "center" }}>
             <div style={{ width: 64, height: 64, borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.1)", flexShrink: 0 }}>
-              {selectedHouse.imgName && <img src={selectedHouse.imgName?.includes("http") ? selectedHouse.imgName : `https://sgp1.digitaloceanspaces.com/villapaza-spaces/${selectedHouse.imgName}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.target as any).style.display = "none"; }} />}
+              {selectedHouse.imgName && <img src={resolveHouseImage(selectedHouse.imgName)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.target as any).style.display = "none"; }} />}
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 16 }}>CITY-{selectedHouse.hId}</div>
