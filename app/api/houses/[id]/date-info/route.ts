@@ -56,6 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           currentPrice = activeHoliday.price;
         } else {
           status = "holiday";
+          oldPrice = currentPrice;
           currentPrice = activeHoliday.price;
         }
       }

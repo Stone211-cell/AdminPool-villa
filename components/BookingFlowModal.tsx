@@ -298,8 +298,18 @@ export function BookingFlowModal({ house }: { house: any }) {
                            {!isPast && statusStr !== "free" && !(isCheckIn||isCheckOut) && (
                              <span className={`text-[10px] md:text-xs font-bold mt-1 px-1.5 py-0.5 rounded-md text-white ${st.labelColor}`}>{st.label}</span>
                            )}
-                           {!isPast && statusStr === "free" && !(isCheckIn||isCheckOut) && (
-                             <span className="text-[9px] md:text-[10px] text-gray-400 font-semibold mt-1">{(heatmap[key]?.price || house.price)/1000}k</span>
+                           
+                           {!isPast && !(isCheckIn||isCheckOut) && (
+                             <div className="flex flex-col items-center mt-1">
+                               {(statusStr === "hotpro" || statusStr === "holiday") && heatmap[key]?.oldPrice && (
+                                 <span className="text-[9px] text-gray-400 line-through leading-none">
+                                   {(heatmap[key].oldPrice)/1000}k
+                                 </span>
+                               )}
+                               <span className={`text-[9px] md:text-[10px] font-semibold leading-none mt-0.5 ${statusStr === "hotpro" || statusStr === "holiday" ? "text-red-500 font-bold" : "text-gray-400"}`}>
+                                 {(heatmap[key]?.price || house.price)/1000}k
+                               </span>
+                             </div>
                            )}
                            {isCheckIn && <span className="text-[9px] text-white/90 font-bold mt-0.5">Check-in</span>}
                            {isCheckOut && <span className="text-[9px] text-[#ff758f] font-bold mt-0.5">Check-out</span>}
