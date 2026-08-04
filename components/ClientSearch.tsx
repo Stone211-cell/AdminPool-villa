@@ -114,7 +114,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {housesToRender.map((house, i) => (
         <Link 
-          href={`/villas/CITY-${house.hId}`} 
+          href={`/villas/BT-${house.hId}`} 
           key={house.hId} 
           className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 hover:-translate-y-1 transition-all group relative"
           data-aos="fade-up"
@@ -135,17 +135,17 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           <div className="relative h-56 bg-gray-200 overflow-hidden">
             <img 
               src={house.imgName || ""} 
-              alt={`CITY-${house.hId}`} 
+              alt={`BT-${house.hId}`} 
               referrerPolicy="no-referrer"
-              onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=CITY-"+house.hId; }}
+              onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=BT-"+house.hId; }}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             />
             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
-              CITY-{house.hId}
+              BT-{house.hId}
             </div>
           </div>
           <div className="p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">บ้านพักพูลวิลล่า CITY-{house.hId}</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">บ้านพักพูลวิลล่า BT-{house.hId}</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               <span className="bg-pink-50 text-[#ff758f] px-2 py-1 rounded-lg text-xs font-bold">🛏️ {house.hBedroom} นอน</span>
               <span className="bg-pink-50 text-[#ff758f] px-2 py-1 rounded-lg text-xs font-bold">🚿 {house.hToilet} น้ำ</span>

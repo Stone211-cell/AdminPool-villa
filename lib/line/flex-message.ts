@@ -37,7 +37,7 @@ export function createBookingFlexMessage(data: BookingCardData) {
 
   return {
     type: "flex",
-    altText: `📋 คำขอจองพูลวิลล่า CITY-${data.houseId} | ${checkInStr} - ${checkOutStr} | ${priceStr}`,
+    altText: `📋 คำขอจองพูลวิลล่า BT-${data.houseId} | ${checkInStr} - ${checkOutStr} | ${priceStr}`,
     contents: {
       type: "bubble",
       size: "giga",
@@ -64,7 +64,7 @@ export function createBookingFlexMessage(data: BookingCardData) {
                   },
                   {
                     type: "text",
-                    text: `CITY-${data.houseId}`,
+                    text: `BT-${data.houseId}`,
                     color: "#ffffff",
                     size: "xl",
                     weight: "bold",
@@ -324,7 +324,7 @@ export function createBookingFlexMessage(data: BookingCardData) {
             action: {
               type: "message",
               label: "✅ ยืนยันจอง",
-              text: `ยืนยันจอง CITY-${data.houseId} เช็คอิน ${checkInStr} เช็คเอาท์ ${checkOutStr} ชื่อ: ${fullName} เบอร์: ${data.phone}`,
+              text: `ยืนยันจอง BT-${data.houseId} เช็คอิน ${checkInStr} เช็คเอาท์ ${checkOutStr} ชื่อ: ${fullName} เบอร์: ${data.phone}`,
             },
             style: "primary",
             color: "#1a1a2e",
@@ -335,7 +335,7 @@ export function createBookingFlexMessage(data: BookingCardData) {
             action: {
               type: "message",
               label: "📞 ติดต่อแอดมิน",
-              text: `สอบถามข้อมูลการจอง CITY-${data.houseId} หมายเลขคำขอ: ${data.bookingId.slice(-8).toUpperCase()}`,
+              text: `สอบถามข้อมูลการจอง BT-${data.houseId} หมายเลขคำขอ: ${data.bookingId.slice(-8).toUpperCase()}`,
             },
             style: "secondary",
             flex: 1,

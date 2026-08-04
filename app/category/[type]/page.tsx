@@ -33,7 +33,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
                <div className="relative h-64 overflow-hidden">
                  <img 
                     src={house.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} 
-                    alt={`CITY-${house.hId}`} 
+                    alt={`BT-${house.hId}`} 
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                  />
@@ -42,7 +42,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
                  )}
                </div>
                <div className="p-6">
-                 <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#ff758f] transition-colors line-clamp-1">พูลวิลล่า CITY-{house.hId}</h3>
+                 <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#ff758f] transition-colors line-clamp-1">พูลวิลล่า BT-{house.hId}</h3>
                  <p className="text-gray-500 text-sm line-clamp-2 mb-4">ที่พักพูลวิลล่าส่วนตัว พร้อมสิ่งอำนวยความสะดวกครบครัน</p>
                  <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
                    <div>

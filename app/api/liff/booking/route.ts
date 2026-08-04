@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     // สร้าง Flex Message
     const flexMsg = createBookingFlexMessage({
       houseId,
-      houseName: `CITY-${houseId}`,
+      houseName: `BT-${houseId}`,
       checkIn: checkInDate,
       checkOut: checkOutDate,
       guests: guests || 1,

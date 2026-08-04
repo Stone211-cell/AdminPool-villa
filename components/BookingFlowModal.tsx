@@ -228,7 +228,7 @@ export function BookingFlowModal({ house }: { house: any }) {
             {/* Header & Progress */}
             <div className="bg-gray-50 border-b border-gray-100 p-6">
               <button onClick={() => setIsOpen(false)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-500 shadow-sm hover:text-gray-800">✕</button>
-              <h2 className="text-xl font-black text-gray-900 mb-6">จองบ้านพัก พูลวิลล่า CITY-{house.hId}</h2>
+              <h2 className="text-xl font-black text-gray-900 mb-6">จองบ้านพัก พูลวิลล่า BT-{house.hId}</h2>
               
               <div className="flex justify-between items-center relative">
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0">
@@ -362,7 +362,7 @@ export function BookingFlowModal({ house }: { house: any }) {
                   <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
                     <h3 className="font-black text-lg text-gray-900 mb-4">สรุปรายละเอียดการจอง</h3>
                     <div className="space-y-2 text-sm font-semibold text-gray-600">
-                      <div className="flex justify-between"><span className="text-gray-500">บ้านพัก:</span> <span className="text-gray-900">CITY-{house.hId}</span></div>
+                      <div className="flex justify-between"><span className="text-gray-500">บ้านพัก:</span> <span className="text-gray-900">BT-{house.hId}</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">เช็คอิน:</span> <span className="text-gray-900">{checkIn?.toLocaleDateString('th-TH')} (14:00)</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">เช็คเอาท์:</span> <span className="text-gray-900">{checkOut?.toLocaleDateString('th-TH')} (12:00)</span></div>
                       <div className="flex justify-between"><span className="text-gray-500">จำนวนคืน:</span> <span className="text-gray-900">{priceDetails.nights} คืน</span></div>

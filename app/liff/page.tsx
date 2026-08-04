@@ -255,7 +255,7 @@ export default function LiffPage() {
                   {h.imgName && <img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.target as any).style.display = "none"; }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>CITY-{h.hId}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>BT-{h.hId}</div>
                   <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
                     🛏 {h.hBedroom} ห้องนอน · 🚿 {h.hToilet} ห้องน้ำ · 👥 สูงสุด {h.people} ท่าน
                   </div>
@@ -292,7 +292,7 @@ export default function LiffPage() {
               {selectedHouse.imgName && <img src={resolveHouseImage(selectedHouse.imgName)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { (e.target as any).style.display = "none"; }} />}
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>CITY-{selectedHouse.hId}</div>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>BT-{selectedHouse.hId}</div>
               <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>{formatDate(new Date(checkIn))} → {formatDate(new Date(checkOut))}</div>
               <div style={{ fontSize: 14, color: "#7c8ef7", fontWeight: 600, marginTop: 4 }}>🌙 {nights} คืน · ฿{formatPrice(totalPrice)}</div>
             </div>
@@ -352,7 +352,7 @@ export default function LiffPage() {
         <div style={{ ...styles.card, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#7c8ef7", marginBottom: 16, textAlign: "center" }}>📋 สรุปคำขอจอง</div>
 
-          <Row label="🏠 ห้อง" value={`CITY-${selectedHouse?.hId}`} large />
+          <Row label="🏠 ห้อง" value={`BT-${selectedHouse?.hId}`} large />
           <Row label="📅 เช็คอิน" value={formatDate(new Date(checkIn)) + " (14:00 น.)"} />
           <Row label="📅 เช็คเอาท์" value={formatDate(new Date(checkOut)) + " (12:00 น.)"} />
           <Row label="🌙 จำนวนคืน" value={`${nights} คืน`} />

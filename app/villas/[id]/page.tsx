@@ -7,7 +7,7 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
   const { id } = await params;
 
   const house = await prisma.house.findUnique({
-    where: { hId: id.replace('CITY-', '') },
+    where: { hId: id.replace('BT-', '') },
     include: { detail: true }
   });
 
@@ -31,17 +31,17 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
       <div className="w-full h-[60vh] relative overflow-hidden bg-gray-900">
         <img 
           src={house.imgName || "https://placehold.co/1200x800/ffe4e6/ff758f"} 
-          alt={`พูลวิลล่า CITY-${house.hId}`}
+          alt={`พูลวิลล่า BT-${house.hId}`}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover opacity-80"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
         <div className="absolute bottom-0 left-0 right-0 p-8 max-w-5xl mx-auto">
           <div className="flex gap-2 mb-3">
-             <span className="bg-white/20 backdrop-blur text-white px-3 py-1 rounded-full text-xs font-bold border border-white/30">CITY-{house.hId}</span>
+             <span className="bg-white/20 backdrop-blur text-white px-3 py-1 rounded-full text-xs font-bold border border-white/30">BT-{house.hId}</span>
              <span className="bg-[#ff758f] text-white px-3 py-1 rounded-full text-xs font-bold">โซน: {house.hZone}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-md">พูลวิลล่า CITY-{house.hId}</h1>
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-md">พูลวิลล่า BT-{house.hId}</h1>
           <p className="text-gray-200 font-semibold">{house.hFarsea || "ใกล้ทะเลและสถานที่ท่องเที่ยว"}</p>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
                   <div className="relative h-48 overflow-hidden">
                     <img 
                       src={simHouse.imgName || "https://placehold.co/800x600/ffe4e6/ff758f"} 
-                      alt={`CITY-${simHouse.hId}`} 
+                      alt={`BT-${simHouse.hId}`} 
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                     />
@@ -160,7 +160,7 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-1 mb-1 group-hover:text-[#ff758f] transition-colors">พูลวิลล่า CITY-{simHouse.hId}</h3>
+                    <h3 className="font-bold text-lg text-gray-900 line-clamp-1 mb-1 group-hover:text-[#ff758f] transition-colors">พูลวิลล่า BT-{simHouse.hId}</h3>
                     <p className="text-[#ff758f] font-black">{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(simHouse.price || 0))} <span className="text-xs text-gray-500 font-semibold">/ คืน</span></p>
                   </div>
                 </a>

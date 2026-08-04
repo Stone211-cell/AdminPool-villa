@@ -125,12 +125,12 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateC
       {/* Image — compact height */}
       <div className="relative h-36 overflow-hidden bg-gray-900 flex-shrink-0">
         {img && !imgError
-          ? <img src={img} alt={`CITY-${hId}`} loading="lazy"
+          ? <img src={img} alt={`BT-${hId}`} loading="lazy"
               onError={() => setImgError(true)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           : <div className="w-full h-full flex flex-col items-center justify-center text-gray-700">
               <span className="text-4xl">🏠</span>
-              <span className="text-xs text-gray-600 mt-1">CITY-{hId}</span>
+              <span className="text-xs text-gray-600 mt-1">BT-{hId}</span>
             </div>
         }
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -138,7 +138,7 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateC
         {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-1">
           <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded border border-white/10">
-            CITY-{hId}
+            BT-{hId}
           </span>
         </div>
         <span className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded border
@@ -603,7 +603,7 @@ export function AvailabilityPage() {
                   <label className="text-xs font-bold text-gray-400 mb-2 block">🔍 รหัสบ้าน</label>
                   <form onSubmit={handleSearch} className="flex gap-2">
                     <input value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                      placeholder="เช่น 293 หรือ CITY-293"
+                      placeholder="เช่น 293 หรือ BT-293"
                       className="flex-1 bg-[#1a1e29] border border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500 min-w-0" />
                     <button type="submit" className="px-3 py-2 bg-emerald-600 text-white font-bold rounded-xl text-sm hover:bg-emerald-500">🔍</button>
                   </form>
@@ -802,7 +802,7 @@ export function AvailabilityPage() {
       {popupData && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-[320px] text-center flex flex-col items-center gap-2 relative border border-gray-200">
-            <h2 className="text-xl font-black text-gray-800 font-sans tracking-wide">CITY-{popupData.hId}</h2>
+            <h2 className="text-xl font-black text-gray-800 font-sans tracking-wide">BT-{popupData.hId}</h2>
             <p className="text-gray-600 text-sm font-medium mb-1">
               {(() => {
                 const [y, m, d] = popupData.date.split("-");

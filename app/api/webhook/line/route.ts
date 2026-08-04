@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
             if (house) {
               const flexContent = createBookingFlexMessage({
                 houseId: house.hId,
-                houseName: `บ้านพัก CITY-${house.hId}`,
+                houseName: `บ้านพัก BT-${house.hId}`,
                 checkIn: booking.checkIn,
                 checkOut: booking.checkOut,
                 guests: booking.guests,
