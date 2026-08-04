@@ -179,7 +179,7 @@ export function BookingFlowModal({ house }: { house: any }) {
       
       if (res.data.success) {
         const message = `ยืนยันการจอง ${res.data.refCode}`;
-        window.open(`https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`, '_blank');
+        window.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
         setIsOpen(false);
       }
     } catch (error) {
