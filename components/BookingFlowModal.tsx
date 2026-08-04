@@ -162,7 +162,12 @@ export function BookingFlowModal({ house }: { house: any }) {
 
   const handleConfirm = async () => {
     // เปิดหน้าต่างใหม่ไว้ล่วงหน้าก่อนเรียก API เพื่อป้องกัน Safari/Popup Blocker บล็อก
-    const newWindow = window.open('', '_blank');
+    let newWindow: Window | null = null;
+    try {
+      newWindow = window.open('', '_blank');
+    } catch (e) {
+      console.warn("Popup blocked or not supported in this browser:", e);
+    }
     
     try {
       setSubmitting(true);
