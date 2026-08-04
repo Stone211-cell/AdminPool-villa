@@ -147,3 +147,42 @@ model BasePrice {
 
   @@map("base_prices")
 }
+
+// ข้อมูลลูกค้า LINE (จดจำจาก LIFF)
+model LineUser {
+  id          String   @id @default(cuid())
+  lineUserId  String   @unique @map("line_user_id")
+  displayName String   @default("") @map("display_name")
+  pictureUrl  String?  @map("picture_url")
+  phone       String   @default("")
+  firstName   String   @default("") @map("first_name")
+  lastName    String   @default("") @map("last_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  bookingRequests LineBookingRequest[]
+
+  @@map("line_users")
+}
+
+// คำขอจองผ่าน LINE LIFF
+model LineBookingRequest {
+  id          String   @id @default(cuid())
+  lineUserId  String   @map("line_user_id")
+  houseId     String   @map("house_id")
+  checkIn     DateTime @map("check_in")
+  checkOut    DateTime @map("check_out")
+  guests      Int      @default(1)
+  totalPrice  Int      @default(0) @map("total_price")
+  phone       String   @default("")
+  firstName   String   @default("") @map("first_name")
+  lastName    String   @default("") @map("last_name")
+  notes       String   @default("")
+  status      String   @default("pending") // pending | confirmed | cancelled
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lineUser LineUser @relation(fields: [lineUserId], references: [lineUserId])
+
+  @@map("line_booking_requests")
+}
