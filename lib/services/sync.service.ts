@@ -122,6 +122,47 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     }
   }
 
+  // Parse priceHouse -> holiday and promotion
+  if ((data as any).priceHouse) {
+    const ph = (data as any).priceHouse;
+    
+    // Parse Holidays
+    if (Array.isArray(ph.holiday)) {
+      for (const h of ph.holiday) {
+        if (!h.date || h.date.length === 0) continue;
+        const start = new Date(h.date[0]);
+        const end = new Date(h.date[h.date.length - 1]);
+        holidayData.push({
+          houseId: hId,
+          start: start,
+          end: new Date(end.getTime() + 86400000), // exclusive end
+          type: "holiday",
+          price: h.price || 0,
+          people: h.accommodate_number || 0,
+          alert: h.description || "",
+        });
+      }
+    }
+    
+    // Parse Promotions
+    if (Array.isArray(ph.promotion)) {
+      for (const p of ph.promotion) {
+        if (!p.date || p.date.length === 0) continue;
+        const start = new Date(p.date[0]);
+        const end = new Date(p.date[p.date.length - 1]);
+        holidayData.push({
+          houseId: hId,
+          start: start,
+          end: new Date(end.getTime() + 86400000), // exclusive end
+          type: "hotpro",
+          price: p.price || 0,
+          people: p.accommodate_number || 0,
+          alert: p.description || "",
+        });
+      }
+    }
+  }
+
   if (bookData.length > 0) await prisma.booking.createMany({ data: bookData });
   if (holidayData.length > 0) await prisma.holiday.createMany({ data: holidayData });
 

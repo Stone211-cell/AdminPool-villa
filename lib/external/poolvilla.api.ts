@@ -59,6 +59,22 @@ export interface RemoteHouseDetail {
     date_end: string;
     status?: { name_th?: string };
   }>;
+  priceHouse?: {
+    every_day?: Array<{
+      day: string;
+      price: number;
+    }>;
+    holiday?: Array<{
+      date: string[];
+      price: number;
+      type?: string;
+    }>;
+    promotion?: Array<{
+      date: string[];
+      price: number;
+      type?: string;
+    }>;
+  };
 }
 
 // ─── API Functions ────────────────────────────────────────────────────────────
