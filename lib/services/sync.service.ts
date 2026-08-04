@@ -30,6 +30,12 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     hToilet: h.number_of_bathrooms || 0,
     hFarsea: "",
     price: (() => {
+      // First try to get the most accurate price from the detailed data we just fetched
+      if (h.lowestPrice && typeof h.lowestPrice === 'object' && typeof h.lowestPrice.price === 'number') {
+        return h.lowestPrice.price;
+      }
+      
+      // Fallback to the remote list data
       let p = typeof rh.lowestPrice === 'object' ? (rh.lowestPrice as any)?.price : Number(rh.lowestPrice);
       if (!p || isNaN(p)) {
         const prices = rh.price_house?.[0]?.every_day?.map((d: any) => typeof d.price === 'object' ? d.price.price : Number(d.price)).filter(n => !isNaN(n)) || [];
