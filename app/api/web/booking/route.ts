@@ -9,10 +9,23 @@ export async function POST(req: NextRequest) {
     // Generate ref code
     const refCode = "BK-" + Math.floor(10000 + Math.random() * 90000); // BK-xxxxx
     
+    const dummyLineUserId = "WEB-" + refCode;
+    
+    // Ensure dummy lineUser exists to satisfy foreign key constraint
+    await prisma.lineUser.upsert({
+      where: { lineUserId: dummyLineUserId },
+      update: {},
+      create: {
+        lineUserId: dummyLineUserId,
+        displayName: "Web Booking " + refCode,
+        pictureUrl: "",
+      }
+    });
+
     // Create line booking request
     await prisma.lineBookingRequest.create({
       data: {
-        lineUserId: "WEB-" + refCode,
+        lineUserId: dummyLineUserId,
         houseId,
         checkIn: new Date(checkIn),
         checkOut: new Date(checkOut),
