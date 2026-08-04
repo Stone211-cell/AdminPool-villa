@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { DayPicker, DateRange } from "react-day-picker";
 import "react-day-picker/style.css";
+import axios from "axios";
 
 interface ClientSearchProps {
   initialHouses: any[];
@@ -14,6 +15,8 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
   const [searchTerm, setSearchTerm] = useState("");
   const [guests, setGuests] = useState({ adult: 0, child: 0, pet: 0 });
   const [date, setDate] = useState<DateRange | undefined>();
+  const [unavailableHouses, setUnavailableHouses] = useState<Set<string>>(new Set());
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
 
   // Filter out houses without an image
   const validHouses = initialHouses.filter(house => house.imgName && house.imgName.trim() !== "");
@@ -34,11 +37,11 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
   const filteredHouses = validHouses.filter(house => {
     const matchSearch = house.hId.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         (house.hZone && house.hZone.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchSearch && matchGuests(house);
+    const isAvailable = !unavailableHouses.has(house.hId);
+    return matchSearch && matchGuests(house) && isAvailable;
   });
 
-
-  const isSearching = searchTerm.length > 0 || guests.adult > 0 || guests.child > 0 || guests.pet > 0;
+  const isSearching = searchTerm.length > 0 || guests.adult > 0 || guests.child > 0 || guests.pet > 0 || date?.from;
 
   // Categories
   const promoHousesAll = validHouses.filter(h => h.category === "PROMOTION");
@@ -269,24 +272,43 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
         </div>
 
         <button 
-          onClick={() => {
-            const params = new URLSearchParams();
-            if (searchTerm) params.append('q', searchTerm);
-            if (guests.adult > 0) params.append('adults', guests.adult.toString());
-            if (guests.child > 0) params.append('children', guests.child.toString());
-            if (date?.from) params.append('checkin', date.from.toISOString());
-            if (date?.to) params.append('checkout', date.to.toISOString());
-            window.location.href = `/searchroom?${params.toString()}`;
+          disabled={isSearchingApi}
+          onClick={async () => {
+            if (date?.from && date?.to) {
+              try {
+                setIsSearchingApi(true);
+                const res = await axios.get("/api/web/search-availability", {
+                  params: {
+                    checkIn: date.from.toISOString(),
+                    checkOut: date.to.toISOString()
+                  }
+                });
+                if (res.data.success) {
+                  setUnavailableHouses(new Set(res.data.unavailableHouseIds));
+                }
+              } catch (e) {
+                console.error(e);
+              } finally {
+                setIsSearchingApi(false);
+              }
+            } else {
+              setUnavailableHouses(new Set()); // reset if no dates
+            }
+            document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="bg-[#ff758f] hover:bg-[#ff5c77] text-white px-8 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2 shadow-lg shadow-pink-200 cursor-pointer"
+          className="bg-[#ff758f] hover:bg-[#ff5c77] text-white px-8 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2 shadow-lg shadow-pink-200 cursor-pointer disabled:bg-gray-400"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          {isSearchingApi ? (
+            <span className="animate-spin">⏳</span>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          )}
           ค้นหา
         </button>
       </div>
 
       {/* House List Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-20">
+      <div id="search-results" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-20">
         
         {isSearching ? (
           /* Search Results View */
