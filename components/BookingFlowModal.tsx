@@ -26,7 +26,7 @@ export function BookingFlowModal({ house }: { house: any }) {
   
   // Step 1: Calendar
   const [month, setMonth] = useState(new Date());
-  const [heatmap, setHeatmap] = useState<Record<string, {status: DayStatus, price: number, people: number}>>({});
+  const [heatmap, setHeatmap] = useState<Record<string, {status: DayStatus, price: number, oldPrice?: number, people: number}>>({});
   const [loadingCal, setLoadingCal] = useState(false);
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
@@ -43,7 +43,7 @@ export function BookingFlowModal({ house }: { house: any }) {
   });
   
   // Step 3: Summary
-  const [priceDetails, setPriceDetails] = useState({ nights: 0, totalPrice: 0 });
+  const [priceDetails, setPriceDetails] = useState({ nights: 0, totalPrice: 0, totalOldPrice: 0, hasDiscount: false });
   const [submitting, setSubmitting] = useState(false);
 
   // Open modal & fetch data
@@ -131,17 +131,26 @@ export function BookingFlowModal({ house }: { house: any }) {
   useEffect(() => {
     if (checkIn && checkOut) {
       let totalPrice = 0;
+      let totalOldPrice = 0;
+      let hasDiscount = false;
       const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
       const curr = new Date(checkIn);
       for (let i = 0; i < diffDays; i++) {
         const key = toDateKey(curr);
-        totalPrice += heatmap[key]?.price || house.price;
+        const dayInfo = heatmap[key];
+        const p = dayInfo?.price || house.price;
+        const oldP = dayInfo?.oldPrice || p;
+        
+        totalPrice += p;
+        totalOldPrice += oldP;
+        if (dayInfo?.oldPrice) hasDiscount = true;
+        
         curr.setDate(curr.getDate() + 1);
       }
       
-      setPriceDetails({ nights: diffDays, totalPrice });
+      setPriceDetails({ nights: diffDays, totalPrice, totalOldPrice, hasDiscount });
     }
   }, [checkIn, checkOut, heatmap, house.price]);
 
@@ -362,8 +371,16 @@ export function BookingFlowModal({ house }: { house: any }) {
                   </div>
                   
                   <div className="bg-pink-50 rounded-2xl p-6 border border-pink-100">
+                    {priceDetails.hasDiscount && (
+                      <div className="flex justify-between items-center mb-1 text-gray-500">
+                        <span className="font-bold">ราคาปกติ</span>
+                        <span className="font-bold line-through">{priceDetails.totalOldPrice.toLocaleString()} บาท</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-bold text-gray-700">ยอดรวมค่าที่พัก</span>
+                      <span className="font-bold text-gray-700">
+                        {priceDetails.hasDiscount ? "ยอดรวมราคาโปรโมชั่น" : "ยอดรวมค่าที่พัก"}
+                      </span>
                       <span className="font-black text-xl text-gray-900">{priceDetails.totalPrice.toLocaleString()} บาท</span>
                     </div>
                     <div className="flex justify-between items-center">
