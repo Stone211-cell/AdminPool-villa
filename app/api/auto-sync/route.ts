@@ -4,6 +4,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 import { NextRequest, NextResponse } from "next/server";
 import { runBulkSync } from "@/lib/services/sync.service";
+import { waitUntil } from "@vercel/functions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -23,8 +24,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await runBulkSync(50);
-    return NextResponse.json({ success: true, message: "Sync complete", result });
+    // ให้ระบบ sync ทำงานแบบ background ต่อแม้ว่าจะส่ง response คืนแล้วก็ตาม
+    waitUntil(
+      runBulkSync(50).catch(e => console.error("[auto-sync] background error:", e))
+    );
+    
+    // ตอบ 200 ทันทีเพื่อไม่ให้ระบบของ cron-job.org หรือ Vercel หมดเวลา (Timeout)
+    return NextResponse.json({ success: true, message: "Sync started in background via waitUntil" });
   } catch (e) {
     console.error("[auto-sync] error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -36,8 +42,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const result = await runBulkSync(50);
-    return NextResponse.json({ success: true, message: "Sync complete", result });
+    waitUntil(
+      runBulkSync(50).catch(e => console.error("[auto-sync] background error:", e))
+    );
+    return NextResponse.json({ success: true, message: "Sync started in background via waitUntil" });
   } catch (e) {
     console.error("[auto-sync] error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
