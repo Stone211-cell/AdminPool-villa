@@ -46,6 +46,7 @@ export interface RemoteHouseDetail {
     accommodate_number?: number;
     district?: string;
     detail?: string;
+    lowestPrice?: { name?: string; price?: number };
     facilities?: Array<{ name_th?: string; name_en?: string }>;
     location?: { name?: string };
     additional_stay_information?: {
