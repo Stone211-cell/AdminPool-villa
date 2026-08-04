@@ -301,12 +301,12 @@ export function BookingFlowModal({ house }: { house: any }) {
                            
                            {!isPast && !(isCheckIn||isCheckOut) && (
                              <div className="flex flex-col items-center mt-1">
-                               {(statusStr === "hotpro" || statusStr === "holiday") && heatmap[key]?.oldPrice && (
+                               {heatmap[key]?.oldPrice > 0 && (
                                  <span className="text-[9px] text-gray-400 line-through leading-none">
                                    {(heatmap[key].oldPrice)/1000}k
                                  </span>
                                )}
-                               <span className={`text-[9px] md:text-[10px] font-semibold leading-none mt-0.5 ${statusStr === "hotpro" || statusStr === "holiday" ? "text-red-500 font-bold" : "text-gray-400"}`}>
+                               <span className={`text-[9px] md:text-[10px] font-semibold leading-none mt-0.5 ${heatmap[key]?.oldPrice > 0 ? "text-red-500 font-bold" : "text-gray-400"}`}>
                                  {(heatmap[key]?.price || house.price)/1000}k
                                </span>
                              </div>
