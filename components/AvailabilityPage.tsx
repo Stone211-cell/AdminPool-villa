@@ -27,7 +27,7 @@ const thaiDateTime = (iso: string | null) => {
 };
 
 // ─── Mini Calendar (per house) ────────────────────────────────────────────────
-function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DayStatus>; month: Date; onDateClick?: (date: string) => void }) {
+function MiniCalendar({ hId, hMap, month, holidays, onDateClick }: { hId: string; hMap: Record<string, DayStatus>; month: Date; holidays?: any[]; onDateClick?: (date: string) => void }) {
   const [off, setOff] = React.useState(0);
   const base = new Date(month.getFullYear(), month.getMonth() + off, 1);
   const y = base.getFullYear(), m = base.getMonth();
@@ -54,9 +54,13 @@ function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DaySt
           const key = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
           const st = STATUS[hMap[key] || "free"];
           const isWknd = i % 7 === 0 || i % 7 === 6;
+          
+          // Check if there's a hotpro on this date regardless of booked status
+          const hasHotpro = hMap[key] === "hotpro" || (holidays && holidays.some(h => h.houseId === hId && h.type === "hotpro" && key >= h.start.slice(0, 10) && key <= h.end.slice(0, 10)));
+
           return (
             <button key={key} title={st.label} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDateClick?.(key); }}
-              className={`aspect-square flex items-center justify-center text-sm md:text-lg font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hMap[key] === "hotpro" ? "animated-rainbow" : ""}`}>
+              className={`aspect-square flex items-center justify-center text-sm md:text-lg font-bold rounded-md border shadow-sm cursor-pointer hover:scale-105 hover:opacity-80 transition-transform ${st.bg} ${st.border} ${st.text} ${st.border === "border-gray-700" && isWknd ? "text-red-400" : ""} ${hasHotpro ? "animated-rainbow" : ""}`}>
               {day}
             </button>
           );
@@ -67,9 +71,10 @@ function MiniCalendar({ hMap, month, onDateClick }: { hMap: Record<string, DaySt
 }
 
 // ─── House Card ───────────────────────────────────────────────────────────────
-function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateClick }: {
+function HouseCard({ house, selectedDate, houseHeatmap, holidays, month, onSynced, onDateClick }: {
   house: House; selectedDate: Date|null;
   houseHeatmap: Record<string, Record<string, DayStatus>>;
+  holidays?: any[];
   month: Date; onSynced?: () => void;
   onDateClick?: (hId: string, date: string) => void;
 }) {
@@ -183,7 +188,7 @@ function HouseCard({ house, selectedDate, houseHeatmap, month, onSynced, onDateC
 
         {/* Mini Calendar */}
         <div className="mt-1">
-          <MiniCalendar hMap={hMap} month={month} onDateClick={(d) => onDateClick?.(hId, d)} />
+          <MiniCalendar hId={hId} hMap={hMap} month={month} holidays={holidays} onDateClick={(d) => onDateClick?.(hId, d)} />
         </div>
 
         {/* Price + Buttons */}
@@ -466,13 +471,11 @@ export function AvailabilityPage() {
       if (prices[dayOfWeek] > 0) currentPrice = prices[dayOfWeek];
     }
 
-    if (status === "hotpro" || status === "holiday") {
-      const hday = holidays.find(h => h.houseId === hId && dateStr >= h.start.slice(0, 10) && dateStr <= h.end.slice(0, 10));
-      if (hday) {
-        if (status === "hotpro") oldPrice = currentPrice;
-        currentPrice = hday.price;
-        people = hday.people || people;
-      }
+    const hday = holidays.find(h => h.houseId === hId && dateStr >= h.start.slice(0, 10) && dateStr <= h.end.slice(0, 10));
+    if (hday) {
+      if (hday.type === "hotpro") oldPrice = currentPrice;
+      currentPrice = hday.price;
+      people = hday.people || people;
     }
 
     setPopupData({
@@ -693,7 +696,7 @@ export function AvailabilityPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {houses.map(h => (
                       <HouseCard key={h.hId} house={h} selectedDate={sel}
-                        houseHeatmap={houseMap} month={month}
+                        houseHeatmap={houseMap} holidays={holidays} month={month}
                         onDateClick={handleDateClick}
                         onSynced={() => { setPage(1); fetchHouses(1, true); fetchHeatmap(); }} />
                     ))}

@@ -22,20 +22,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ตอบ 200 ทันที ไม่รอให้ sync เสร็จ
-  const res = NextResponse.json({ success: true, message: "Sync started in background" });
-  
-  // ทำ sync เบื้องหลัง (fire-and-forget)
-  runBulkSync(20).catch(e => console.error("[auto-sync] error:", e));
-  
-  return res;
+  try {
+    const result = await runBulkSync(50);
+    return NextResponse.json({ success: true, message: "Sync complete", result });
+  } catch (e) {
+    console.error("[auto-sync] error:", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const res = NextResponse.json({ success: true, message: "Sync started in background" });
-  runBulkSync(20).catch(e => console.error("[auto-sync] error:", e));
-  return res;
+  try {
+    const result = await runBulkSync(50);
+    return NextResponse.json({ success: true, message: "Sync complete", result });
+  } catch (e) {
+    console.error("[auto-sync] error:", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

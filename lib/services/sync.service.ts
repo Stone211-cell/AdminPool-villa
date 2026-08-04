@@ -143,7 +143,7 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
           start: start,
           end: new Date(end.getTime() + 86400000), // exclusive end
           type: "holiday",
-          price: h.price || 0,
+          price: h.sum || h.price || 0,
           people: h.accommodate_number || 0,
           alert: h.description || "",
         });
@@ -161,13 +161,45 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
           start: start,
           end: new Date(end.getTime() + 86400000), // exclusive end
           type: "hotpro",
-          price: p.price || 0,
+          price: p.sum || p.price || 0,
           people: p.accommodate_number || 0,
           alert: p.description || "",
         });
       }
     }
   }
+
+  // Parse BasePrices
+  let basePriceData = {
+    houseId: hId,
+    priceSun: houseData.price,
+    priceMon: houseData.price,
+    priceTue: houseData.price,
+    priceWed: houseData.price,
+    priceThu: houseData.price,
+    priceFri: houseData.price,
+    priceSat: houseData.price,
+  };
+
+  if ((data as any).priceHouse && Array.isArray((data as any).priceHouse.every_day)) {
+    const ev = (data as any).priceHouse.every_day;
+    for (const d of ev) {
+      const val = d.sum || d.price || 0;
+      if (d.day === "Sun") basePriceData.priceSun = val;
+      if (d.day === "Mon") basePriceData.priceMon = val;
+      if (d.day === "Tue") basePriceData.priceTue = val;
+      if (d.day === "Wed") basePriceData.priceWed = val;
+      if (d.day === "Thu") basePriceData.priceThu = val;
+      if (d.day === "Fri") basePriceData.priceFri = val;
+      if (d.day === "Sat") basePriceData.priceSat = val;
+    }
+  }
+
+  await prisma.basePrice.upsert({
+    where: { houseId: hId },
+    create: basePriceData,
+    update: basePriceData,
+  });
 
   if (bookData.length > 0) await prisma.booking.createMany({ data: bookData });
   if (holidayData.length > 0) await prisma.holiday.createMany({ data: holidayData });

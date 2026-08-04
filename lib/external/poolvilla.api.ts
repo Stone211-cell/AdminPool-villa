@@ -64,16 +64,23 @@ export interface RemoteHouseDetail {
     every_day?: Array<{
       day: string;
       price: number;
+      sum?: number;
     }>;
     holiday?: Array<{
       date: string[];
       price: number;
+      sum?: number;
       type?: string;
+      description?: string;
+      accommodate_number?: number;
     }>;
     promotion?: Array<{
       date: string[];
       price: number;
+      sum?: number;
       type?: string;
+      description?: string;
+      accommodate_number?: number;
     }>;
   };
 }
