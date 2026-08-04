@@ -161,6 +161,9 @@ export function BookingFlowModal({ house }: { house: any }) {
   };
 
   const handleConfirm = async () => {
+    // เปิดหน้าต่างใหม่ไว้ล่วงหน้าก่อนเรียก API เพื่อป้องกัน Safari/Popup Blocker บล็อก
+    const newWindow = window.open('', '_blank');
+    
     try {
       setSubmitting(true);
       const res = await axios.post("/api/web/booking", {
@@ -179,10 +182,18 @@ export function BookingFlowModal({ house }: { house: any }) {
       
       if (res.data.success) {
         const message = `ยืนยันการจอง ${res.data.refCode}`;
-        window.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+        if (newWindow) {
+          newWindow.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+        } else {
+          // สำรองเผื่อกรณีเบราว์เซอร์ไม่ยอมให้เปิดหน้าต่างใหม่จริงๆ
+          window.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+        }
         setIsOpen(false);
+      } else {
+        if (newWindow) newWindow.close();
       }
     } catch (error) {
+      if (newWindow) newWindow.close();
       toast.error("เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่");
     } finally {
       setSubmitting(false);
