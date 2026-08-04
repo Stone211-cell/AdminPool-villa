@@ -14,6 +14,7 @@ const STATUS = {
   repair:  { label: "ปิดปรับปรุง", bg: "bg-red-50", border: "border-red-200", text: "text-red-500", labelColor: "bg-red-500" },
   holiday: { label: "ราคาพิเศษ", bg: "bg-green-50", border: "border-green-200", text: "text-green-600", labelColor: "bg-green-500" },
   free:    { label: "", bg: "bg-white", border: "border-gray-100", text: "text-gray-700", labelColor: "" },
+  hotpro:  { label: "ลดราคา", bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-600", labelColor: "bg-cyan-500" },
 } as const;
 
 type DayStatus = keyof typeof STATUS;
@@ -43,6 +44,7 @@ export function BookingFlowModal({ house }: { house: any }) {
   
   // Step 3: Summary
   const [priceDetails, setPriceDetails] = useState({ nights: 0, totalPrice: 0 });
+  const [submitting, setSubmitting] = useState(false);
 
   // Open modal & fetch data
   const handleOpen = () => {
@@ -69,7 +71,6 @@ export function BookingFlowModal({ house }: { house: any }) {
       const { data } = await axios.get(`/api/houses/${house.hId}/date-info`, {
         params: { y: d.getFullYear(), m: d.getMonth() + 1 }
       });
-      // We assume date-info now returns more details or we just use default house price
       setHeatmap(prev => ({ ...prev, ...(data.heatmap || {}) }));
     } catch (e) {
       console.error(e);
@@ -85,43 +86,64 @@ export function BookingFlowModal({ house }: { house: any }) {
     fetchHeatmap(next);
   };
 
+  // Helper to format Date to YYYY-MM-DD
+  const toDateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
   const handleDateClick = (date: Date, status: DayStatus) => {
-    if (status === "booked" || status === "repair" || status === "waiting") {
-      // Allow checkout on booked days if checkIn is set, but let's keep it simple: 
-      // If no checkin, can't start on booked.
-      if (!checkIn) return;
+    const isBlocked = status === "booked" || status === "repair" || status === "waiting";
+    
+    if (isBlocked && !checkIn) {
+      return toast.error("วันนี้ไม่ว่างให้เข้าพักครับ");
     }
     
     if (!checkIn || (checkIn && checkOut)) {
+      if (isBlocked) return toast.error("วันนี้ไม่ว่างให้เข้าพักครับ");
       setCheckIn(date);
       setCheckOut(null);
     } else if (date > checkIn) {
+      // Check if there are any blocked dates in between
+      let hasBlockedDate = false;
+      const curr = new Date(checkIn);
+      while (curr < date) {
+        const key = toDateKey(curr);
+        const s = heatmap[key]?.status || "free";
+        if (s === "booked" || s === "repair" || s === "waiting") {
+          hasBlockedDate = true;
+          break;
+        }
+        curr.setDate(curr.getDate() + 1);
+      }
+      
+      if (hasBlockedDate) {
+        toast.error("มีวันที่ติดจองในช่วงที่คุณเลือก กรุณาเลือกใหม่ครับ");
+        setCheckIn(date); // Reset to new checkIn
+        setCheckOut(null);
+        return;
+      }
       setCheckOut(date);
-      calculatePrice(checkIn, date);
     } else {
+      if (isBlocked) return toast.error("วันนี้ไม่ว่างให้เข้าพักครับ");
       setCheckIn(date);
       setCheckOut(null);
     }
   };
 
-  const calculatePrice = (start: Date, end: Date) => {
-    let totalPrice = 0;
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    // Sum price from heatmap for each night
-    const curr = new Date(start);
-    for (let i = 0; i < diffDays; i++) {
-      const y = curr.getFullYear();
-      const m = String(curr.getMonth() + 1).padStart(2, "0");
-      const d = String(curr.getDate()).padStart(2, "0");
-      const key = `${y}-${m}-${d}`;
-      totalPrice += heatmap[key]?.price || house.price;
-      curr.setDate(curr.getDate() + 1);
+  useEffect(() => {
+    if (checkIn && checkOut) {
+      let totalPrice = 0;
+      const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      const curr = new Date(checkIn);
+      for (let i = 0; i < diffDays; i++) {
+        const key = toDateKey(curr);
+        totalPrice += heatmap[key]?.price || house.price;
+        curr.setDate(curr.getDate() + 1);
+      }
+      
+      setPriceDetails({ nights: diffDays, totalPrice });
     }
-    
-    setPriceDetails({ nights: diffDays, totalPrice });
-  };
+  }, [checkIn, checkOut, heatmap, house.price]);
 
   const handleNext = () => {
     if (step === 1 && (!checkIn || !checkOut)) return toast.error("กรุณาเลือกวันเช็คอินและเช็คเอาท์");
@@ -129,13 +151,33 @@ export function BookingFlowModal({ house }: { house: any }) {
     setStep(s => s + 1);
   };
 
-  const handleConfirm = () => {
-    const deposit = Math.ceil((priceDetails.totalPrice * 0.6) / 100) * 100;
-    const cid = checkIn?.toLocaleDateString('th-TH') || "";
-    const cod = checkOut?.toLocaleDateString('th-TH') || "";
-    const message = `[จองบ้านพัก]\nบ้าน: CITY-${house.hId}\nเช็คอิน: ${cid}\nเช็คเอาท์: ${cod}\nจำนวนคืน: ${priceDetails.nights} คืน\nผู้เข้าพัก: ผู้ใหญ่ ${formData.adult} เด็ก ${formData.child} สัตว์เลี้ยง ${formData.pet}\nรวมยอดที่พัก: ${priceDetails.totalPrice.toLocaleString()} บาท\nยอดมัดจำ(60%): ${deposit.toLocaleString()} บาท\n\nชื่อลูกค้า: ${formData.name}\nเบอร์โทร: ${formData.phone}\n${formData.email ? `อีเมล: ${formData.email}\n` : ''}${formData.note ? `หมายเหตุ: ${formData.note}` : ''}`;
-    
-    window.open(`https://line.me/R/oaMessage/@villadd/?${encodeURIComponent(message)}`, '_blank');
+  const handleConfirm = async () => {
+    try {
+      setSubmitting(true);
+      const res = await axios.post("/api/web/booking", {
+        houseId: house.hId,
+        checkIn,
+        checkOut,
+        adult: formData.adult,
+        child: formData.child,
+        pet: formData.pet,
+        totalPrice: priceDetails.totalPrice,
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        note: formData.note
+      });
+      
+      if (res.data.success) {
+        const message = `ยืนยันการจอง ${res.data.refCode}`;
+        window.open(`https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`, '_blank');
+        setIsOpen(false);
+      }
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Calendar render logic
@@ -199,8 +241,14 @@ export function BookingFlowModal({ house }: { house: any }) {
               
               {/* STEP 1: Calendar */}
               {step === 1 && (
-                <div className={loadingCal ? "opacity-50 pointer-events-none" : ""}>
-                   <div className="flex items-center justify-between mb-6">
+                <div className="relative">
+                  {loadingCal && (
+                    <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex items-center justify-center rounded-xl">
+                      <div className="w-10 h-10 border-4 border-pink-200 border-t-[#ff758f] rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between mb-6">
                     <button onClick={() => navMonth(-1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all font-bold">{"<"}</button>
                     <span className="font-black text-xl text-gray-800">{THAI_MONTHS_FULL[m]} {y + 543}</span>
                     <button onClick={() => navMonth(1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all font-bold">{">"}</button>
@@ -226,7 +274,9 @@ export function BookingFlowModal({ house }: { house: any }) {
                       const inRange = checkIn && checkOut && cDate > checkIn && cDate < checkOut;
                       
                       let cellBg = isPast ? "opacity-30 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:border-[#ff758f] " + st.bg;
-                      if (isCheckIn || isCheckOut) cellBg = "bg-[#ff758f] text-white shadow-md transform scale-105";
+                      
+                      if (isCheckIn) cellBg = "bg-[#ff758f] text-white shadow-md transform scale-105 border-[#ff758f]";
+                      else if (isCheckOut) cellBg = "bg-white border-2 border-[#ff758f] text-[#ff758f] shadow-md transform scale-105";
                       else if (inRange) cellBg = "bg-pink-50 border-pink-100";
 
                       return (
@@ -235,13 +285,15 @@ export function BookingFlowModal({ house }: { house: any }) {
                           onClick={() => !isPast && handleDateClick(cDate, statusStr)}
                           className={`aspect-square flex flex-col items-center justify-center rounded-xl border transition-all ${cellBg} ${st.border}`}
                         >
-                           <span className={`text-lg md:text-xl font-black ${isCheckIn||isCheckOut ? "text-white" : st.text}`}>{day}</span>
+                           <span className={`text-lg md:text-xl font-black ${isCheckIn ? "text-white" : isCheckOut ? "text-[#ff758f]" : st.text}`}>{day}</span>
                            {!isPast && statusStr !== "free" && !(isCheckIn||isCheckOut) && (
                              <span className={`text-[10px] md:text-xs font-bold mt-1 px-1.5 py-0.5 rounded-md text-white ${st.labelColor}`}>{st.label}</span>
                            )}
                            {!isPast && statusStr === "free" && !(isCheckIn||isCheckOut) && (
-                             <span className="text-[9px] md:text-[10px] text-gray-400 font-semibold mt-1">{house.price/1000}k</span>
+                             <span className="text-[9px] md:text-[10px] text-gray-400 font-semibold mt-1">{(heatmap[key]?.price || house.price)/1000}k</span>
                            )}
+                           {isCheckIn && <span className="text-[9px] text-white/90 font-bold mt-0.5">Check-in</span>}
+                           {isCheckOut && <span className="text-[9px] text-[#ff758f] font-bold mt-0.5">Check-out</span>}
                         </div>
                       );
                     })}
@@ -335,8 +387,12 @@ export function BookingFlowModal({ house }: { house: any }) {
               {step < 3 ? (
                 <button onClick={handleNext} className="flex-1 px-6 py-3 rounded-xl font-bold text-white bg-[#ff758f] hover:bg-[#ff5c77] transition-colors shadow-lg shadow-pink-200">ดำเนินการต่อ</button>
               ) : (
-                <button onClick={handleConfirm} className="flex-1 px-6 py-3 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2">
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                <button onClick={handleConfirm} disabled={submitting} className="flex-1 px-6 py-3 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] disabled:bg-gray-400 disabled:shadow-none transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2">
+                  {submitting ? (
+                    <span className="animate-spin text-xl">⏳</span>
+                  ) : (
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                  )}
                   ยืนยันและจองผ่าน LINE
                 </button>
               )}
