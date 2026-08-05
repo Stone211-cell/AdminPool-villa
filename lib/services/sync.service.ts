@@ -90,8 +90,7 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
   });
 
   // Sync bookings
-  await prisma.booking.deleteMany({ where: { houseId: hId } });
-  await prisma.holiday.deleteMany({ where: { houseId: hId } });
+  // Sync bookings
 
   const books = Array.isArray(data.book) ? data.book : [];
   const bookData: any[] = [];
@@ -196,14 +195,17 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     }
   }
 
-  await prisma.basePrice.upsert({
-    where: { houseId: hId },
-    create: basePriceData,
-    update: basePriceData,
-  });
-
-  if (bookData.length > 0) await prisma.booking.createMany({ data: bookData });
-  if (holidayData.length > 0) await prisma.holiday.createMany({ data: holidayData });
+  await prisma.$transaction([
+    prisma.booking.deleteMany({ where: { houseId: hId } }),
+    prisma.holiday.deleteMany({ where: { houseId: hId } }),
+    prisma.basePrice.upsert({
+      where: { houseId: hId },
+      create: basePriceData,
+      update: basePriceData,
+    }),
+    ...(bookData.length > 0 ? [prisma.booking.createMany({ data: bookData })] : []),
+    ...(holidayData.length > 0 ? [prisma.holiday.createMany({ data: holidayData })] : [])
+  ]);
 
   return { bookings: bookData.length + holidayData.length };
 }
@@ -213,8 +215,7 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
   const data = await fetchHouseDetail(hId);
   if (!data?.house) return false;
 
-  await prisma.booking.deleteMany({ where: { houseId: hId } });
-  await prisma.holiday.deleteMany({ where: { houseId: hId } });
+
 
   const books = Array.isArray(data.book) ? data.book : [];
   const bookData: any[] = [];
@@ -322,14 +323,17 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
     }
   }
 
-  await prisma.basePrice.upsert({
-    where: { houseId: hId },
-    create: basePriceData,
-    update: basePriceData,
-  });
-
-  if (bookData.length > 0) await prisma.booking.createMany({ data: bookData });
-  if (holidayData.length > 0) await prisma.holiday.createMany({ data: holidayData });
+  await prisma.$transaction([
+    prisma.booking.deleteMany({ where: { houseId: hId } }),
+    prisma.holiday.deleteMany({ where: { houseId: hId } }),
+    prisma.basePrice.upsert({
+      where: { houseId: hId },
+      create: basePriceData,
+      update: basePriceData,
+    }),
+    ...(bookData.length > 0 ? [prisma.booking.createMany({ data: bookData })] : []),
+    ...(holidayData.length > 0 ? [prisma.holiday.createMany({ data: holidayData })] : [])
+  ]);
 
   return true;
 }
