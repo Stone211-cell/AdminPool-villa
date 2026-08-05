@@ -16,12 +16,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   try {
-    // 100% REAL-TIME: Sync the calendar and prices for this specific house BEFORE returning data
-    // It's better to make the user wait than to show them outdated data (which could lead to double bookings).
+    // Fire live sync in the background without blocking the UI.
+    // Since the house page already triggers a background sync on load, the DB data here is likely 100% fresh.
+    // If called from elsewhere, it will return DB data instantly and silently update the DB for the next interaction.
     try {
-      await syncHouseCalendar(hId);
+      waitUntil(syncHouseCalendar(hId).catch((e) => {
+        console.error(`[date-info] Background sync failed for ${hId}:`, e);
+      }));
     } catch (e) {
-      console.error(`[date-info] Failed to live sync calendar for ${hId}:`, e);
+      console.error(`[date-info] Failed to queue live sync:`, e);
     }
 
     const house = await prisma.house.findUnique({
