@@ -135,7 +135,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
             </div>
           )}
           
-          <div className="relative h-56 bg-gray-200 overflow-hidden group/slider">
+          <div className="relative h-48 bg-gray-200 overflow-hidden group/slider">
             <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {(house.images && house.images.length > 0 ? house.images.slice(0, 5) : [house.imgName]).map((img: string, idx: number) => (
                 <img 
