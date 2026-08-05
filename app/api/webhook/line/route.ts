@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
               }
             }
           }
-        } else if (text.includes('ช่องทางติดต่อ')) {
+        } else if (text.includes('ติดต่อ')) {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
             replyToken,
             messages: [{
