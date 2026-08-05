@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { LineRichMenu } from "@/components/LineRichMenu";
 import { BookingFlowModal } from "@/components/BookingFlowModal";
+import { after } from "next/server";
 
 export default async function VillaDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +15,19 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
   if (!house) {
     notFound();
   }
+
+  // โหลดข้อมูลบ้านหลังบ้าน background — ไม่ทำให้หน้าช้า ราคา/ปฏิทินจะอัปเดตในครั้งถัดไปที่เปิดหน้า
+  const houseId = house.hId;
+  after(async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app'}/api/houses/${houseId}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (e) {
+      // background sync fail ไม่กระทบหน้าเว็บ
+    }
+  });
 
   // Similar houses
   const similarHouses = await prisma.house.findMany({
