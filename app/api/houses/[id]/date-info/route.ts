@@ -17,19 +17,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   try {
     // 100% REAL-TIME: Sync the calendar and prices for this specific house BEFORE returning data
-    // We enforce a strict 1500ms timeout so the UI doesn't hang if the origin API is slow.
+    // It's better to make the user wait than to show them outdated data (which could lead to double bookings).
     try {
-      const syncPromise = syncHouseCalendar(hId);
-      waitUntil(syncPromise.catch(() => {})); // Let it finish in background if we timeout
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Live sync timeout")), 1500)
-      );
-      
-      await Promise.race([syncPromise, timeoutPromise]);
+      await syncHouseCalendar(hId);
     } catch (e) {
-      console.warn(`[date-info] Live sync fallback for ${hId}:`, e instanceof Error ? e.message : "Unknown error");
-      // fallback to whatever is in the DB immediately
+      console.error(`[date-info] Failed to live sync calendar for ${hId}:`, e);
     }
 
     const house = await prisma.house.findUnique({
