@@ -58,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
 
       // Apply Holiday / Hotpro
-      let activeHoliday = holidays.find(h => h.start <= dayEnd && h.end >= dayStart);
+      let activeHoliday = holidays.find(h => h.start <= dayEnd && h.end > dayStart);
       if (activeHoliday) {
         if (activeHoliday.type === "hotpro") {
           status = "hotpro";
