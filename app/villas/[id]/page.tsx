@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { LineRichMenu } from "@/components/LineRichMenu";
 import { BookingFlowModal } from "@/components/BookingFlowModal";
 import { after } from "next/server";
+import { syncHouseCalendar } from "@/lib/services/sync.service";
 
 export default async function VillaDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,10 +21,7 @@ export default async function VillaDetail({ params }: { params: Promise<{ id: st
   const houseId = house.hId;
   after(async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app'}/api/houses/${houseId}/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      await syncHouseCalendar(houseId);
     } catch (e) {
       // background sync fail ไม่กระทบหน้าเว็บ
     }
