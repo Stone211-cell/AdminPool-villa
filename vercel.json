@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/auto-sync?secret=pool-villa-sync-2024-secret",
-      "schedule": "0 * * * *"
+      "schedule": "0 19 * * *"
     }
   ]
 }
