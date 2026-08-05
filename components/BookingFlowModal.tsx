@@ -52,7 +52,7 @@ export function BookingFlowModal({ house }: { house: any }) {
     setIsOpen(true);
     setStep(1);
     setBookingDone(null);
-    fetchHeatmap(month);
+    fetchHeatmap(month, false);
     if (isSignedIn) {
       axios.get("/api/user/profile").then(res => {
         if (res.data.user) {
@@ -67,19 +67,36 @@ export function BookingFlowModal({ house }: { house: any }) {
     }
   };
 
-  const fetchHeatmap = async (d: Date) => {
-    setLoadingCal(true);
+  const fetchHeatmap = async (d: Date, forceLoad = false) => {
+    // ถ้าเคยโหลดเดือนนี้มาแล้ว หรือกำลังโหลดอยู่เบื้องหลัง ไม่ต้องขึ้น Spinner หมุนๆ ให้ลูกค้าเห็น
+    const sampleKey = toDateKey(new Date(d.getFullYear(), d.getMonth(), 15));
+    const shouldShowLoading = forceLoad || !heatmap[sampleKey];
+    
+    if (shouldShowLoading) setLoadingCal(true);
     try {
       const { data } = await axios.get(`/api/houses/${house.hId}/date-info`, {
         params: { y: d.getFullYear(), m: d.getMonth() + 1 }
       });
       setHeatmap(prev => ({ ...prev, ...(data.heatmap || {}) }));
+      
+      // แอบโหลดเดือนถัดไปมารอไว้เลย (Silent prefetch)
+      const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      axios.get(`/api/houses/${house.hId}/date-info`, { params: { y: nextMonth.getFullYear(), m: nextMonth.getMonth() + 1 } })
+        .then(res => setHeatmap(prev => ({ ...prev, ...(res.data.heatmap || {}) })))
+        .catch(() => {});
+        
     } catch (e) {
       console.error(e);
     } finally {
-      setLoadingCal(false);
+      if (shouldShowLoading) setLoadingCal(false);
     }
   };
+
+  // แอบโหลดปฏิทินตั้งแต่ตอนที่ลูกค้าเข้ามาดูหน้ารายละเอียดบ้าน (Component Mount)
+  useEffect(() => {
+    fetchHeatmap(month, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const navMonth = (dir: number) => {
     const next = new Date(month);
