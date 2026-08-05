@@ -45,11 +45,13 @@ export function BookingFlowModal({ house }: { house: any }) {
   // Step 3: Summary
   const [priceDetails, setPriceDetails] = useState({ nights: 0, totalPrice: 0, totalOldPrice: 0, hasDiscount: false });
   const [submitting, setSubmitting] = useState(false);
+  const [bookingDone, setBookingDone] = useState<{ refCode: string; lineUrl: string } | null>(null);
 
   // Open modal & fetch data
   const handleOpen = () => {
     setIsOpen(true);
     setStep(1);
+    setBookingDone(null);
     fetchHeatmap(month);
     if (isSignedIn) {
       axios.get("/api/user/profile").then(res => {
@@ -161,14 +163,6 @@ export function BookingFlowModal({ house }: { house: any }) {
   };
 
   const handleConfirm = async () => {
-    // เปิดหน้าต่างใหม่ไว้ล่วงหน้าก่อนเรียก API เพื่อป้องกัน Safari/Popup Blocker บล็อก
-    let newWindow: Window | null = null;
-    try {
-      newWindow = window.open('', '_blank');
-    } catch (e) {
-      console.warn("Popup blocked or not supported in this browser:", e);
-    }
-    
     try {
       setSubmitting(true);
       const res = await axios.post("/api/web/booking", {
@@ -184,21 +178,21 @@ export function BookingFlowModal({ house }: { house: any }) {
         email: formData.email,
         note: formData.note
       });
-      
+
       if (res.data.success) {
         const message = `ยืนยันการจอง ${res.data.refCode}`;
-        if (newWindow) {
-          newWindow.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+        const lineUrl = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+
+        if (res.data.lineSent) {
+          // ลือคอินอยู่ และเราผูก LINE ได้ ส่ง push สำเร็จแล้ว
+          toast.success("ส่งข้อมูลการจองไป LINE ของคุณเรียบร้อยแล้ว!");
+          setBookingDone({ refCode: res.data.refCode, lineUrl });
         } else {
-          // สำรองเผื่อกรณีเบราว์เซอร์ไม่ยอมให้เปิดหน้าต่างใหม่จริงๆ
-          window.location.href = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+          // ไม่ได้ล็อคอิน หรือล็อคอินแต่ไม่มี LINE ID — ให้กดปุ่มเปิด LINE เอง
+          setBookingDone({ refCode: res.data.refCode, lineUrl });
         }
-        setIsOpen(false);
-      } else {
-        if (newWindow) newWindow.close();
       }
     } catch (error) {
-      if (newWindow) newWindow.close();
       toast.error("เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่");
     } finally {
       setSubmitting(false);
@@ -422,24 +416,48 @@ export function BookingFlowModal({ house }: { house: any }) {
             </div>
 
             {/* Footer Buttons */}
-            <div className="bg-white border-t border-gray-100 p-6 flex justify-between gap-4">
-              {step > 1 ? (
-                <button onClick={() => setStep(s => s - 1)} className="px-6 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors">ย้อนกลับ</button>
-              ) : <div></div>}
-              
-              {step < 3 ? (
-                <button onClick={handleNext} className="flex-1 px-6 py-3 rounded-xl font-bold text-white bg-[#ff758f] hover:bg-[#ff5c77] transition-colors shadow-lg shadow-pink-200">ดำเนินการต่อ</button>
-              ) : (
-                <button onClick={handleConfirm} disabled={submitting} className="flex-1 px-6 py-3 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] disabled:bg-gray-400 disabled:shadow-none transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2">
-                  {submitting ? (
-                    <span className="animate-spin text-xl">⏳</span>
-                  ) : (
+            <div className="bg-white border-t border-gray-100 p-6">
+              {bookingDone ? (
+                /* หลังจองสำเร็จ */
+                <div className="text-center">
+                  <div className="text-5xl mb-3">🎉</div>
+                  <p className="font-black text-gray-900 text-lg mb-1">จองสำเร็จแล้ว!</p>
+                  <p className="text-sm text-gray-500 mb-1">รหัสการจอง: <span className="font-black text-[#ff758f]">{bookingDone.refCode}</span></p>
+                  <p className="text-sm text-gray-500 mb-4">กดปุ่มด้านล่างเพื่อส่งข้อมูลยืนยันผ่าน LINE</p>
+                  <a
+                    href={bookingDone.lineUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full px-6 py-4 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2 text-base"
+                    onClick={() => setIsOpen(false)}
+                  >
                     <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                    กดที่นี่เพื่อยืนยันผ่าน LINE
+                  </a>
+                  <button onClick={() => setIsOpen(false)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 underline">ปิดหน้าต่างนี้</button>
+                </div>
+              ) : (
+                <div className="flex justify-between gap-4">
+                  {step > 1 ? (
+                    <button onClick={() => setStep(s => s - 1)} className="px-6 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors">ย้อนกลับ</button>
+                  ) : <div></div>}
+
+                  {step < 3 ? (
+                    <button onClick={handleNext} className="flex-1 px-6 py-3 rounded-xl font-bold text-white bg-[#ff758f] hover:bg-[#ff5c77] transition-colors shadow-lg shadow-pink-200">ดำเนินการต่อ</button>
+                  ) : (
+                    <button onClick={handleConfirm} disabled={submitting} className="flex-1 px-6 py-3 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] disabled:bg-gray-400 disabled:shadow-none transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2">
+                      {submitting ? (
+                        <span className="animate-spin text-xl">⏳</span>
+                      ) : (
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                      )}
+                      ยืนยันและจองผ่าน LINE
+                    </button>
                   )}
-                  ยืนยันและจองผ่าน LINE
-                </button>
+                </div>
               )}
             </div>
+
 
           </div>
         </div>
