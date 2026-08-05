@@ -123,7 +123,7 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
       bookData.push({
         houseId: hId,
         checkIn: new Date(b.date_start),
-        checkOut: new Date(new Date(b.date_end).getTime() + 86400000),
+        checkOut: new Date(b.date_end),
         bookType: bType,
       });
     }
@@ -160,7 +160,7 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
         holidayData.push({
           houseId: hId,
           start: start,
-          end: new Date(end.getTime() + 86400000), // exclusive end
+          end: end,
           type: "hotpro",
           price: p.sum || p.price || 0,
           people: p.accommodate_number || 0,
@@ -232,7 +232,7 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
       holidayData.push({
         houseId: hId,
         start: new Date(b.date_start),
-        end: new Date(new Date(b.date_end).getTime() + 86400000),
+        end: new Date(b.date_end),
         type: statusName === "เทศกาล" ? "holiday" : "hotpro",
         price: 0,
         people: 0,
@@ -246,7 +246,7 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
       bookData.push({
         houseId: hId,
         checkIn: new Date(b.date_start),
-        checkOut: new Date(new Date(b.date_end).getTime() + 86400000),
+        checkOut: new Date(b.date_end),
         bookType: bType,
       });
     }
@@ -269,7 +269,7 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
         holidayData.push({
           houseId: hId,
           start: start,
-          end: new Date(end.getTime() + 86400000),
+          end: end,
           type: "holiday",
           price: h.sum || h.price || 0,
           people: h.accommodate_number || 0,
@@ -287,7 +287,7 @@ export async function syncHouseCalendar(hId: string): Promise<boolean> {
         holidayData.push({
           houseId: hId,
           start: start,
-          end: new Date(end.getTime() + 86400000),
+          end: end,
           type: "hotpro",
           price: p.sum || p.price || 0,
           people: p.accommodate_number || 0,
