@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
               });
               
               if (flexContent) {
-                await axios.post('https://api.line.me/v2/bot/message/reply', {
-                  replyToken,
+                await axios.post('https://api.line.me/v2/bot/message/push', {
+                  to: userId,
                   messages: [flexContent]
                 }, {
                   headers: {
