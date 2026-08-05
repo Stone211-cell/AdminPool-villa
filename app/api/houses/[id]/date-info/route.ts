@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { syncHouseCalendar } from "@/lib/services/sync.service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   try {
+    // 100% REAL-TIME: Sync the calendar and prices for this specific house BEFORE returning data
+    // This takes ~0.5s - 1s, which is perfectly fine for a popup modal, and guarantees no double bookings.
+    try {
+      await syncHouseCalendar(hId);
+    } catch (e) {
+      console.error(`[date-info] Failed to live sync calendar for ${hId}:`, e);
+      // fallback to whatever is in the DB
+    }
+
     const house = await prisma.house.findUnique({
       where: { hId },
       include: {

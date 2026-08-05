@@ -207,6 +207,132 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
   return { bookings: bookData.length + holidayData.length };
 }
 
+// ─── Sync Live Calendar only (On-demand) ──────────────────────────────────────
+export async function syncHouseCalendar(hId: string): Promise<boolean> {
+  const data = await fetchHouseDetail(hId);
+  if (!data?.house) return false;
+
+  await prisma.booking.deleteMany({ where: { houseId: hId } });
+  await prisma.holiday.deleteMany({ where: { houseId: hId } });
+
+  const books = Array.isArray(data.book) ? data.book : [];
+  const bookData: any[] = [];
+  const holidayData: any[] = [];
+
+  for (const b of books) {
+    if (!b.date_start || !b.date_end) continue;
+    const statusName = b.status?.name_th || "";
+
+    if (
+      statusName === "เทศกาล" ||
+      statusName === "ลดราคา" ||
+      statusName === "โปรโมชั่น"
+    ) {
+      holidayData.push({
+        houseId: hId,
+        start: new Date(b.date_start),
+        end: new Date(new Date(b.date_end).getTime() + 86400000),
+        type: statusName === "เทศกาล" ? "holiday" : "hotpro",
+        price: 0,
+        people: 0,
+        alert: "",
+      });
+    } else {
+      let bType = "deville";
+      if (statusName === "รอชำระ") bType = "waiting";
+      if (statusName === "ปิดปรับปรุง") bType = "repair";
+
+      bookData.push({
+        houseId: hId,
+        checkIn: new Date(b.date_start),
+        checkOut: new Date(new Date(b.date_end).getTime() + 86400000),
+        bookType: bType,
+      });
+    }
+  }
+
+  let defaultPrice = 0;
+  if (data.house.lowestPrice && typeof data.house.lowestPrice.price === 'number') {
+    defaultPrice = data.house.lowestPrice.price;
+  }
+
+  if ((data as any).priceHouse) {
+    const ph = (data as any).priceHouse;
+    
+    // Parse Holidays
+    if (Array.isArray(ph.holiday)) {
+      for (const h of ph.holiday) {
+        if (!h.date || h.date.length === 0) continue;
+        const start = new Date(h.date[0]);
+        const end = new Date(h.date[h.date.length - 1]);
+        holidayData.push({
+          houseId: hId,
+          start: start,
+          end: new Date(end.getTime() + 86400000),
+          type: "holiday",
+          price: h.sum || h.price || 0,
+          people: h.accommodate_number || 0,
+          alert: h.description || "",
+        });
+      }
+    }
+    
+    // Parse Promotions
+    if (Array.isArray(ph.promotion)) {
+      for (const p of ph.promotion) {
+        if (!p.date || p.date.length === 0) continue;
+        const start = new Date(p.date[0]);
+        const end = new Date(p.date[p.date.length - 1]);
+        holidayData.push({
+          houseId: hId,
+          start: start,
+          end: new Date(end.getTime() + 86400000),
+          type: "hotpro",
+          price: p.sum || p.price || 0,
+          people: p.accommodate_number || 0,
+          alert: p.description || "",
+        });
+      }
+    }
+  }
+
+  let basePriceData = {
+    houseId: hId,
+    priceSun: defaultPrice,
+    priceMon: defaultPrice,
+    priceTue: defaultPrice,
+    priceWed: defaultPrice,
+    priceThu: defaultPrice,
+    priceFri: defaultPrice,
+    priceSat: defaultPrice,
+  };
+
+  if ((data as any).priceHouse && Array.isArray((data as any).priceHouse.every_day)) {
+    const ev = (data as any).priceHouse.every_day;
+    for (const d of ev) {
+      const val = d.sum || d.price || 0;
+      if (d.day === "Sun") basePriceData.priceSun = val;
+      if (d.day === "Mon") basePriceData.priceMon = val;
+      if (d.day === "Tue") basePriceData.priceTue = val;
+      if (d.day === "Wed") basePriceData.priceWed = val;
+      if (d.day === "Thu") basePriceData.priceThu = val;
+      if (d.day === "Fri") basePriceData.priceFri = val;
+      if (d.day === "Sat") basePriceData.priceSat = val;
+    }
+  }
+
+  await prisma.basePrice.upsert({
+    where: { houseId: hId },
+    create: basePriceData,
+    update: basePriceData,
+  });
+
+  if (bookData.length > 0) await prisma.booking.createMany({ data: bookData });
+  if (holidayData.length > 0) await prisma.holiday.createMany({ data: holidayData });
+
+  return true;
+}
+
 // ─── Bulk sync (for cron) ─────────────────────────────────────────────────────
 export async function runBulkSync(limit = 50): Promise<{
   synced: number;
