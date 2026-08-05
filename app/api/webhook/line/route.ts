@@ -66,6 +66,49 @@ export async function POST(req: NextRequest) {
               }
             }
           }
+        } else if (text.includes('ช่องทางติดต่อ')) {
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken,
+            messages: [{
+              type: 'text',
+              text: "เพจ Facebook\nhttps://web.facebook.com/profile.php?id=61556499615942\n\nFacebook ส่วนตัว\nhttps://web.facebook.com/jirapat.sutudnaayutthaya/directory_personal_details?locale=th_TH"
+            }]
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+            }
+          });
+        } else if (text.includes('โปรโมชั่น')) {
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken,
+            messages: [{
+              type: 'text',
+              text: "รอโปรโมชั่น"
+            }]
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+            }
+          });
+        } else if (text.includes('มัดจำ') || text.includes('เลขบัญชี') || text.includes('โอนเงิน')) {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app';
+          const imageUrl = `${appUrl}/images/qr-deposit.jpg`;
+          
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken,
+            messages: [{
+              type: 'image',
+              originalContentUrl: imageUrl,
+              previewImageUrl: imageUrl
+            }]
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+            }
+          });
         }
       }
     }
