@@ -198,7 +198,7 @@ export function BookingFlowModal({ house }: { house: any }) {
 
       if (res.data.success) {
         const message = `ยืนยันการจอง ${res.data.refCode}`;
-        const lineUrl = `https://line.me/R/oaMessage/@villadd/?text=${encodeURIComponent(message)}`;
+        const lineUrl = `https://line.me/R/oaMessage/@588sruvk/?text=${encodeURIComponent(message)}`;
 
         if (res.data.lineSent) {
           // ลือคอินอยู่ และเราผูก LINE ได้ ส่ง push สำเร็จแล้ว
@@ -290,12 +290,12 @@ export function BookingFlowModal({ house }: { house: any }) {
                     <button onClick={() => navMonth(1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-all font-bold">{">"}</button>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-2">
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2">
                     {THAI_DAYS.map((d, i) => (
                       <div key={d} className="text-center text-sm font-bold pb-2 text-gray-500">{d}</div>
                     ))}
                     {cells.map((day, i) => {
-                      if (!day) return <div key={`empty-${i}`} className="aspect-square" />;
+                      if (!day) return <div key={`empty-${i}`} className="min-h-[70px] sm:min-h-[80px] md:aspect-square" />;
                       
                       const key = `${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
                       const cDate = new Date(y, m, day);
@@ -319,11 +319,11 @@ export function BookingFlowModal({ house }: { house: any }) {
                         <div 
                           key={key} 
                           onClick={() => !isPast && handleDateClick(cDate, statusStr)}
-                          className={`aspect-square flex flex-col items-center justify-center rounded-xl border transition-all ${cellBg} ${st.border}`}
+                          className={`min-h-[70px] sm:min-h-[80px] md:aspect-square flex flex-col items-center justify-center rounded-lg md:rounded-xl border transition-all p-0.5 ${cellBg} ${st.border}`}
                         >
                            <span className={`text-lg md:text-xl font-black ${isCheckIn ? "text-white" : isCheckOut ? "text-[#ff758f]" : st.text}`}>{day}</span>
                            {!isPast && statusStr !== "free" && !(isCheckIn||isCheckOut) && (
-                             <span className={`text-[10px] md:text-xs font-bold mt-1 px-1.5 py-0.5 rounded-md text-white ${st.labelColor}`}>{st.label}</span>
+                             <span className={`text-[9px] md:text-xs font-bold mt-0.5 px-1 py-0.5 rounded text-white leading-none text-center ${st.labelColor}`}>{st.label}</span>
                            )}
                            
                            {!isPast && !(isCheckIn||isCheckOut) && (
