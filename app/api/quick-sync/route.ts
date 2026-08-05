@@ -70,11 +70,14 @@ async function runQuickSync() {
           price = prices.length > 0 ? Math.min(...prices) : 0;
         }
 
+        const imagesArray = Array.isArray(rh.thumbnail) ? rh.thumbnail.map((t: string) => toImageUrl(t)).filter(Boolean) : [];
+
         await prisma.house.upsert({
           where: { hId },
           update: {
             price,
             imgName: toImageUrl(rh.thumbnail?.[0]) || "",
+            images: imagesArray,
           },
           create: {
             hId,
@@ -85,6 +88,7 @@ async function runQuickSync() {
             price,
             people: 4,
             imgName: toImageUrl(rh.thumbnail?.[0]) || "",
+            images: imagesArray,
           }
         });
         added++;
@@ -113,9 +117,10 @@ async function runQuickSync() {
     }
 
     if (price > 0) {
+      const imagesArray = Array.isArray(rh.thumbnail) ? rh.thumbnail.map((t: string) => toImageUrl(t)).filter(Boolean) : undefined;
       await prisma.house.update({
         where: { hId },
-        data: { price, imgName: toImageUrl(rh.thumbnail?.[0]) || undefined }
+        data: { price, imgName: toImageUrl(rh.thumbnail?.[0]) || undefined, images: imagesArray }
       });
       priceUpdated++;
     }

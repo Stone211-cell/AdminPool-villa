@@ -37,6 +37,7 @@ model House {
   price       Int
   people      Int
   imgName     String   @default("") @map("img_name")
+  images      String[] @default([])
   swim        String   @default("chlorine")
   wifi        Boolean  @default(false)
   grill       Boolean  @default(false)

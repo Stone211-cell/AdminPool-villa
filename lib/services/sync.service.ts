@@ -45,6 +45,7 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     })(),
     people: h.accommodate_number || 0,
     imgName: toImageUrl(rh.thumbnail?.[0]),
+    images: Array.isArray(rh.thumbnail) ? rh.thumbnail.map(toImageUrl).filter(Boolean) : [],
     swim: hasFac("salt") ? "salt" : "chlorine",
     wifi: hasFac("wifi") || hasFac("อินเทอร์เน็ต"),
     grill: hasFac("เตาปิ้งย่าง"),

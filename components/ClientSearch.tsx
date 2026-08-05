@@ -135,14 +135,28 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
             </div>
           )}
           
-          <div className="relative h-56 bg-gray-200 overflow-hidden">
-            <img 
-              src={house.imgName || ""} 
-              alt={`BT-${house.hId}`} 
-              referrerPolicy="no-referrer"
-              onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=BT-"+house.hId; }}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-            />
+          <div className="relative h-56 bg-gray-200 overflow-hidden group/slider">
+            <div className="w-full h-full flex overflow-x-auto snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {(house.images && house.images.length > 0 ? house.images.slice(0, 5) : [house.imgName]).map((img: string, idx: number) => (
+                <img 
+                  key={idx}
+                  src={img || ""} 
+                  alt={`BT-${house.hId} - รูป ${idx+1}`} 
+                  referrerPolicy="no-referrer"
+                  onError={(e) => { e.currentTarget.src = "https://placehold.co/600x400/ffe4e6/ff758f?text=BT-"+house.hId; }}
+                  className="w-full h-full object-cover shrink-0 snap-center group-hover:scale-105 transition-transform duration-500" 
+                  loading="lazy"
+                />
+              ))}
+            </div>
+            
+            {house.images && house.images.length > 1 && (
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-10 pointer-events-none">
+                {house.images.slice(0, 5).map((_: any, idx: number) => (
+                  <div key={idx} className="w-1.5 h-1.5 rounded-full bg-white/70 shadow-sm"></div>
+                ))}
+              </div>
+            )}
             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm">
               BT-{house.hId}
             </div>
