@@ -197,7 +197,7 @@ export function BookingFlowModal({ house }: { house: any }) {
       });
 
       if (res.data.success) {
-        const message = `ยืนยันการจอง ${res.data.refCode}`;
+        const message = `ยืนยันการจอง ${res.data.refCode}\n(รบกวนลูกค้ากดปุ่มส่งข้อความนี้ให้แอดมินด้วยนะครับ)`;
         const lineUrl = `https://line.me/R/oaMessage/@588sruvk/?text=${encodeURIComponent(message)}`;
 
         if (res.data.lineSent) {
