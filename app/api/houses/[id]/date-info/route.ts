@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncHouseCalendar } from "@/lib/services/sync.service";
+import { waitUntil } from "@vercel/functions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +17,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   try {
     // 100% REAL-TIME: Sync the calendar and prices for this specific house BEFORE returning data
-    // This takes ~0.5s - 1s, which is perfectly fine for a popup modal, and guarantees no double bookings.
+    // We enforce a strict 1500ms timeout so the UI doesn't hang if the origin API is slow.
     try {
-      await syncHouseCalendar(hId);
+      const syncPromise = syncHouseCalendar(hId);
+      waitUntil(syncPromise.catch(() => {})); // Let it finish in background if we timeout
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Live sync timeout")), 1500)
+      );
+      
+      await Promise.race([syncPromise, timeoutPromise]);
     } catch (e) {
-      console.error(`[date-info] Failed to live sync calendar for ${hId}:`, e);
-      // fallback to whatever is in the DB
+      console.warn(`[date-info] Live sync fallback for ${hId}:`, e instanceof Error ? e.message : "Unknown error");
+      // fallback to whatever is in the DB immediately
     }
 
     const house = await prisma.house.findUnique({
