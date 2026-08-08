@@ -54,15 +54,28 @@ export async function POST(req: NextRequest) {
               });
               
               if (flexContent) {
-                await axios.post('https://api.line.me/v2/bot/message/push', {
-                  to: userId,
-                  messages: [flexContent]
-                }, {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
-                  }
-                });
+                try {
+                  await axios.post('https://api.line.me/v2/bot/message/push', {
+                    to: userId,
+                    messages: [flexContent]
+                  }, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+                    }
+                  });
+                } catch (err: any) {
+                  // Fallback to text message if flex message fails (for debugging)
+                  await axios.post('https://api.line.me/v2/bot/message/push', {
+                    to: userId,
+                    messages: [{ type: 'text', text: `เกิดข้อผิดพลาดในการส่งการ์ดจอง: ${err.response?.data?.message || err.message}` }]
+                  }, {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+                    }
+                  });
+                }
               }
             }
           }

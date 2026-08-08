@@ -6,7 +6,7 @@ export function LineRichMenu() {
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-bounce-slow">
       <Link 
-        href="https://line.me/R/ti/p/@villadd" 
+        href="https://line.me/R/ti/p/@baitongpoolvilla" 
         target="_blank"
         rel="noopener noreferrer"
         className="block bg-white p-1 rounded-full shadow-2xl hover:scale-110 transition-transform hover:shadow-pink-200/50"

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "./I18nProvider";
+import { useUser, UserButton } from "@clerk/nextjs";
 
 export function Navbar() {
   const { lang, setLang, t } = useTranslation();
@@ -11,12 +12,19 @@ export function Navbar() {
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  const adminRef = useRef<HTMLDivElement>(null);
+  const { user, isLoaded } = useUser();
+  const isAdmin = user?.publicMetadata?.isAdmin === true;
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setLangOpen(false);
+      }
+      if (adminRef.current && !adminRef.current.contains(e.target as Node)) {
+        setAdminOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -120,11 +128,35 @@ export function Navbar() {
                 )}
               </div>
 
-              {/* Login Button (Desktop) */}
-              <Link href="/sign-in" className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                <span className="text-sm font-bold text-gray-700">{t("login")}</span>
-              </Link>
+              {/* Admin Menu / Login Button (Desktop) */}
+              {isLoaded && user ? (
+                <div className="hidden md:flex items-center gap-4">
+                  {isAdmin && (
+                    <div className="relative" ref={adminRef}>
+                      <button
+                        onClick={() => setAdminOpen(!adminOpen)}
+                        className="flex items-center gap-1 px-3 py-1.5 border border-purple-200 bg-purple-50 rounded-full hover:bg-purple-100 transition-colors"
+                      >
+                        <span className="text-sm font-bold text-purple-700">จัดการหลังบ้าน</span>
+                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </button>
+
+                      {adminOpen && (
+                        <div className="absolute right-0 mt-2 w-40 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+                          <Link href="/admin/houses" onClick={() => setAdminOpen(false)} className="block px-4 py-2 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-700">จัดการบ้านพัก</Link>
+                          <Link href="/admin/articles" onClick={() => setAdminOpen(false)} className="block px-4 py-2 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-700">จัดการบทความ</Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <UserButton />
+                </div>
+              ) : (
+                <Link href="/sign-in" className="hidden md:flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                  <span className="text-sm font-bold text-gray-700">{t("login")}</span>
+                </Link>
+              )}
 
               {/* Hamburger (Mobile) */}
               <button
@@ -155,10 +187,33 @@ export function Navbar() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
               {t("contact")}
             </Link>
-            <Link href="/sign-in" className="px-4 py-3 rounded-xl font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-              {t("login")}
-            </Link>
+            {isAdmin && (
+              <>
+                <div className="my-2 border-t border-gray-100"></div>
+                <p className="px-4 text-xs font-black text-purple-400 uppercase tracking-widest mb-1">ส่วนผู้ดูแลระบบ</p>
+                <Link href="/admin/houses" className="px-4 py-3 rounded-xl font-semibold text-sm text-purple-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                  จัดการบ้านพัก
+                </Link>
+                <Link href="/admin/articles" className="px-4 py-3 rounded-xl font-semibold text-sm text-purple-700 hover:bg-purple-50 transition-colors flex items-center gap-3">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v12a2 2 0 01-2 2z"/></svg>
+                  จัดการบทความ
+                </Link>
+                <div className="my-2 border-t border-gray-100"></div>
+              </>
+            )}
+
+            {!user ? (
+              <Link href="/sign-in" className="px-4 py-3 rounded-xl font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {t("login")}
+              </Link>
+            ) : (
+              <div className="px-4 py-3 flex items-center gap-3">
+                <UserButton />
+                <span className="text-sm font-semibold text-gray-700">บัญชีของคุณ</span>
+              </div>
+            )}
 
             {/* Bank Account in Mobile Menu */}
             <div className="mt-2 bg-green-50 rounded-xl p-3 border border-green-200">

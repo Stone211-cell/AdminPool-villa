@@ -45,7 +45,7 @@ export function BookingFlowModal({ house }: { house: any }) {
   // Step 3: Summary
   const [priceDetails, setPriceDetails] = useState({ nights: 0, totalPrice: 0, totalOldPrice: 0, hasDiscount: false });
   const [submitting, setSubmitting] = useState(false);
-  const [bookingDone, setBookingDone] = useState<{ refCode: string; lineUrl: string } | null>(null);
+  const [bookingDone, setBookingDone] = useState<{ refCode: string; lineUrl: string, adminNotified?: boolean } | null>(null);
 
   // Open modal & fetch data
   const handleOpen = () => {
@@ -197,17 +197,8 @@ export function BookingFlowModal({ house }: { house: any }) {
       });
 
       if (res.data.success) {
-        const message = `ยืนยันการจอง ${res.data.refCode}\n(รบกวนลูกค้ากดปุ่มส่งข้อความนี้ให้แอดมินด้วยนะครับ)`;
-        const lineUrl = `https://line.me/R/oaMessage/@588sruvk/?text=${encodeURIComponent(message)}`;
-
-        if (res.data.lineSent) {
-          // ลือคอินอยู่ และเราผูก LINE ได้ ส่ง push สำเร็จแล้ว
-          toast.success("ส่งข้อมูลการจองไป LINE ของคุณเรียบร้อยแล้ว!");
-          setBookingDone({ refCode: res.data.refCode, lineUrl });
-        } else {
-          // ไม่ได้ล็อคอิน หรือล็อคอินแต่ไม่มี LINE ID — ให้กดปุ่มเปิด LINE เอง
-          setBookingDone({ refCode: res.data.refCode, lineUrl });
-        }
+          const lineUrl = `https://line.me/R/oaMessage/@588sruvk/?${encodeURIComponent(`ยืนยันการจอง ${res.data.refCode}`)}`;
+          setBookingDone({ refCode: res.data.refCode, lineUrl, adminNotified: res.data.adminNotified });
       }
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่");
@@ -436,21 +427,31 @@ export function BookingFlowModal({ house }: { house: any }) {
             <div className="bg-white border-t border-gray-100 p-6">
               {bookingDone ? (
                 /* หลังจองสำเร็จ */
-                <div className="text-center">
+              <div className="text-center">
                   <div className="text-5xl mb-3">🎉</div>
-                  <p className="font-black text-gray-900 text-lg mb-1">จองสำเร็จแล้ว!</p>
+                  <p className="font-black text-gray-900 text-lg mb-1">ส่งคำขอจองสำเร็จ!</p>
                   <p className="text-sm text-gray-500 mb-1">รหัสการจอง: <span className="font-black text-[#ff758f]">{bookingDone.refCode}</span></p>
-                  <p className="text-sm text-gray-500 mb-4">กดปุ่มด้านล่างเพื่อส่งข้อมูลยืนยันผ่าน LINE</p>
-                  <a
-                    href={bookingDone.lineUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full px-6 py-4 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2 text-base"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
-                    กดที่นี่เพื่อยืนยันผ่าน LINE
-                  </a>
+                  {bookingDone.adminNotified ? (
+                    <div className="my-4 p-4 bg-green-50 rounded-xl border border-green-100">
+                      <p className="text-sm text-green-700 font-bold">✅ ทีมงานได้รับแจ้งทาง LINE แล้ว</p>
+                      <p className="text-xs text-green-600 mt-1">เราจะติดต่อกลับภายใน 24 ชั่วโมงครับ</p>
+                    </div>
+                  ) : (
+                    <div className="my-4">
+                      <p className="text-sm text-gray-500 mb-3">กดปุ่มด้านล่างเพื่อส่งยืนยันผ่าน LINE</p>
+                      <a
+                        href={bookingDone.lineUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full px-6 py-4 rounded-xl font-black text-white bg-[#00B900] hover:bg-[#009900] transition-colors shadow-lg shadow-green-200 flex items-center justify-center gap-2 text-base"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                        ยืนยันผ่าน LINE
+                      </a>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-2">📞 สอบถาม LINE: @baitongpoolvilla</p>
                   <button onClick={() => setIsOpen(false)} className="mt-3 text-sm text-gray-400 hover:text-gray-600 underline">ปิดหน้าต่างนี้</button>
                 </div>
               ) : (

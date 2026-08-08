@@ -4,15 +4,19 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function AdminArticlesPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [articles, setArticles] = useState<any[]>([]);
+  
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  
   const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Check if admin
   const isAdmin = user?.publicMetadata?.isAdmin === true;
@@ -31,76 +35,113 @@ export default function AdminArticlesPage() {
       setArticles(data);
     } catch (e) {
       console.error(e);
+      toast.error("ดึงข้อมูลบทความล้มเหลว");
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("/api/articles", { title, content, imageUrl });
-      setTitle("");
-      setContent("");
-      setImageUrl("");
+      if (editingId) {
+        await axios.patch(`/api/articles/${editingId}`, { title, content, imageUrl });
+        toast.success("อัปเดตบทความสำเร็จ!");
+      } else {
+        await axios.post("/api/articles", { title, content, imageUrl });
+        toast.success("สร้างบทความใหม่สำเร็จ!");
+      }
+      resetForm();
       fetchArticles();
     } catch (e) {
-      alert("Error creating article");
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleEdit = (article: any) => {
+    setEditingId(article.id);
+    setTitle(article.title);
+    setContent(article.content);
+    setImageUrl(article.imageUrl || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบทความนี้?")) return;
     try {
       await axios.delete(`/api/articles/${id}`);
+      toast.success("ลบบทความสำเร็จ!");
       fetchArticles();
     } catch (e) {
-      alert("Error deleting article");
+      toast.error("เกิดข้อผิดพลาดในการลบ");
     }
   };
 
-  if (!isLoaded || !isAdmin) return <div className="p-8 text-center">Loading...</div>;
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setContent("");
+    setImageUrl("");
+  };
+
+  if (!isLoaded || !isAdmin) return <div className="p-8 text-center font-bold text-gray-500">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto bg-white rounded-3xl p-8 shadow-sm border border-gray-200">
-        <h1 className="text-3xl font-black mb-8">จัดการบทความ (Admin)</h1>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+      <div className="max-w-5xl mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200">
+        <h1 className="text-3xl font-black mb-8 text-gray-900">จัดการบทความ (Admin)</h1>
         
-        <form onSubmit={handleCreate} className="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-200 space-y-4">
-          <h2 className="text-xl font-bold">เขียนบทความใหม่</h2>
-          <div>
-            <label className="block text-sm font-bold mb-1">หัวข้อ</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="w-full px-4 py-2 border rounded-xl" />
+        <form onSubmit={handleSubmit} className="bg-purple-50/50 p-6 rounded-2xl mb-12 border border-purple-100 space-y-5">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-purple-900">{editingId ? "แก้ไขบทความ" : "เขียนบทความใหม่"}</h2>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="text-sm font-bold text-gray-500 hover:text-gray-700">ยกเลิกการแก้ไข</button>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-bold mb-1">เนื้อหา</label>
-            <textarea value={content} onChange={e => setContent(e.target.value)} required className="w-full px-4 py-2 border rounded-xl min-h-[150px]" />
+            <label className="block text-sm font-bold mb-1.5 text-gray-700">หัวข้อ <span className="text-red-500">*</span></label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="ตั้งชื่อบทความที่น่าสนใจ..." />
           </div>
           <div>
-            <label className="block text-sm font-bold mb-1">ลิงก์รูปภาพ (ไม่บังคับ)</label>
-            <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full px-4 py-2 border rounded-xl" />
+            <label className="block text-sm font-bold mb-1.5 text-gray-700">เนื้อหา <span className="text-red-500">*</span></label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} required className="w-full px-4 py-3 border border-gray-200 rounded-xl min-h-[200px] focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="พิมพ์เนื้อหาที่นี่..." />
           </div>
-          <button type="submit" disabled={loading} className="bg-blue-600 text-white font-bold px-6 py-2 rounded-xl hover:bg-blue-700">
-            {loading ? "กำลังบันทึก..." : "บันทึกบทความ"}
+          <div>
+            <label className="block text-sm font-bold mb-1.5 text-gray-700">ลิงก์รูปภาพ (ไม่บังคับ)</label>
+            <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="https://example.com/image.jpg" />
+          </div>
+          <button type="submit" disabled={loading} className="w-full sm:w-auto bg-purple-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading ? "กำลังบันทึก..." : (editingId ? "อัปเดตบทความ" : "เผยแพร่บทความ")}
           </button>
         </form>
 
         <div>
-          <h2 className="text-xl font-bold mb-4">บทความทั้งหมด</h2>
-          <div className="space-y-4">
+          <h2 className="text-2xl font-black mb-6 text-gray-900">บทความทั้งหมด ({articles.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {articles.map(a => (
-              <div key={a.id} className="flex justify-between items-center bg-white border rounded-xl p-4 shadow-sm">
-                <div>
-                  <h3 className="font-bold text-lg">{a.title}</h3>
-                  <p className="text-sm text-gray-500">{new Date(a.createdAt).toLocaleDateString()}</p>
+              <div key={a.id} className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                {a.imageUrl && (
+                  <img src={a.imageUrl} alt={a.title} className="w-full h-48 object-cover" />
+                )}
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2">{a.title}</h3>
+                  <p className="text-sm text-gray-500 mb-4 line-clamp-3 flex-1">{a.content}</p>
+                  <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-400">{new Date(a.createdAt).toLocaleDateString('th-TH')}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEdit(a)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm transition-colors">แก้ไข</button>
+                      <button onClick={() => handleDelete(a.id)} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm transition-colors">ลบ</button>
+                    </div>
+                  </div>
                 </div>
-                <button onClick={() => handleDelete(a.id)} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100">
-                  ลบ
-                </button>
               </div>
             ))}
-            {articles.length === 0 && <p className="text-gray-500">ยังไม่มีบทความ</p>}
+            {articles.length === 0 && (
+              <div className="col-span-2 text-center py-12 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                <p className="text-gray-500 font-semibold">ยังไม่มีบทความในระบบ</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

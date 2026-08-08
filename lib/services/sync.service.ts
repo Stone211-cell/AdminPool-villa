@@ -19,6 +19,10 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
   const data = await fetchHouseDetail(hId);
   if (!data?.house) return null;
 
+  // Check if this house has manual override — skip main data sync if so
+  const existing = await prisma.house.findUnique({ where: { hId }, select: { manualOverride: true } });
+  const isManual = existing?.manualOverride === true;
+
   const h = data.house;
   const facs = Array.isArray(h.facilities) ? h.facilities : [];
   const hasFac = (k: string) => hasFacility(facs, k);
@@ -60,34 +64,36 @@ export async function syncOneHouse(rh: RemoteHouse): Promise<{ bookings: number 
     bath: hasFac("อ่างอาบน้ำ"),
   };
 
-  await prisma.house.upsert({
-    where: { hId },
-    create: houseData,
-    update: houseData,
-  });
+  if (!isManual) {
+    await prisma.house.upsert({
+      where: { hId },
+      create: houseData,
+      update: houseData,
+    });
 
-  const detailData = {
-    houseId: hId,
-    checkin: h.check_in_time || "14:00",
-    checkout: h.check_out_time || "12:00",
-    extra: h.additional_stay_information?.extra_per_person || 0,
-    insurance: h.additional_stay_information?.damage_insurance || 0,
-    peopleMax: h.accommodate_number || 0,
-    location: h.location?.name || "",
-    sea: "",
-    parking: "",
-    kitchen: "",
-    additionalCosts: "",
-    moreDetail: h.detail || "",
-    bedroomDetail: "",
-    alert: h.additional_stay_information?.service || "",
-  };
+    const detailData = {
+      houseId: hId,
+      checkin: h.check_in_time || "14:00",
+      checkout: h.check_out_time || "12:00",
+      extra: h.additional_stay_information?.extra_per_person || 0,
+      insurance: h.additional_stay_information?.damage_insurance || 0,
+      peopleMax: h.accommodate_number || 0,
+      location: h.location?.name || "",
+      sea: "",
+      parking: "",
+      kitchen: "",
+      additionalCosts: "",
+      moreDetail: h.detail || "",
+      bedroomDetail: "",
+      alert: h.additional_stay_information?.service || "",
+    };
 
-  await prisma.houseDetail.upsert({
-    where: { houseId: hId },
-    create: detailData,
-    update: detailData,
-  });
+    await prisma.houseDetail.upsert({
+      where: { houseId: hId },
+      create: detailData,
+      update: detailData,
+    });
+  }
 
   // Sync bookings
   // Sync bookings

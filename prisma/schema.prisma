@@ -51,6 +51,7 @@ model House {
   swimmingKid Boolean  @default(false) @map("swimming_kid")
   bath        Boolean  @default(false)
   category    String   @default("NORMAL") // PROMOTION | RECOMMENDED | NORMAL | OTHER
+  manualOverride Boolean @default(false) @map("manual_override") // ถ้า true → sync จะไม่ทับข้อมูลหลัก
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
