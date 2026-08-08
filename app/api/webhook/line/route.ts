@@ -92,12 +92,19 @@ export async function POST(req: NextRequest) {
               'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
             }
           });
-        } else if (text.includes('โปรโมชั่น')) {
+        } else if (text === 'โปรโมชั่น') {
           await axios.post('https://api.line.me/v2/bot/message/push', {
             to: userId,
             messages: [{
               type: 'text',
-              text: "รอโปรโมชั่น"
+              text: "กรุณาเลือกช่วงราคาโปรโมชั่นที่คุณสนใจค่ะ 👇",
+              quickReply: {
+                items: [
+                  { type: "action", action: { type: "message", label: "🔥 โปร 2,900", text: "โปรราคา 2900" } },
+                  { type: "action", action: { type: "message", label: "🔥 โปร 3,500", text: "โปรราคา 3500" } },
+                  { type: "action", action: { type: "message", label: "🔥 โปร 3,900", text: "โปรราคา 3900" } }
+                ]
+              }
             }]
           }, {
             headers: {
@@ -105,6 +112,44 @@ export async function POST(req: NextRequest) {
               'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
             }
           });
+        } else if (text.startsWith('โปรราคา ')) {
+          const price = text.replace('โปรราคา ', '').trim();
+          const validPrices = ['2900', '3500', '3900'];
+          
+          if (validPrices.includes(price)) {
+            const fs = require('fs');
+            const path = require('path');
+            try {
+              const indexPath = path.join(process.cwd(), 'public', 'promotion', 'index.json');
+              const indexData = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+              const images = indexData[price] || [];
+              
+              if (images.length > 0) {
+                // Shuffle and pick up to 5 images
+                const shuffled = images.sort(() => 0.5 - Math.random());
+                const selectedImages = shuffled.slice(0, 5);
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app';
+                
+                const messages = selectedImages.map((img: string) => ({
+                  type: 'image',
+                  originalContentUrl: `${appUrl}/promotion/${price}/${img}`,
+                  previewImageUrl: `${appUrl}/promotion/${price}/${img}`
+                }));
+                
+                await axios.post('https://api.line.me/v2/bot/message/push', {
+                  to: userId,
+                  messages: messages
+                }, {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+                  }
+                });
+              }
+            } catch (err) {
+              console.error("Error reading promotion images", err);
+            }
+          }
         } else if (text.includes('มัดจำ') || text.includes('เลขบัญชี') || text.includes('โอนเงิน')) {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app';
           const imageUrl = `${appUrl}/images/qr-deposit.jpg`;
