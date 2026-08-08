@@ -47,7 +47,7 @@ export function Navbar() {
           </svg>
           <span className="text-yellow-300">⚠️ โปรดตรวจสอบบัญชีรับโอนทุกครั้ง</span>
           <span className="hidden sm:inline">|</span>
-          <span className="hidden sm:inline text-white">กสิกรไทย: <span className="text-yellow-300 font-black tracking-widest">004-8-15411-5</span> ชื่อ: <span className="text-yellow-300">จิราภัทร สุทัศน์</span></span>
+          <span className="hidden sm:inline text-white">กสิกรไทย: <span className="text-yellow-300 font-black tracking-widest">004-8-15411-5</span> ชื่อ: <span className="text-yellow-300">จิราภัทร สุทัศน์ ณ อยุธยา</span></span>
           <svg className={`w-4 h-4 transition-transform ${bankOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
         </button>
 
@@ -58,7 +58,9 @@ export function Navbar() {
             </p>
             <div className="bg-green-50 rounded-xl p-3 border border-green-200">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0">กส.</div>
+                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-green-200">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Logo_Kasikorn_Bank.svg/1200px-Logo_Kasikorn_Bank.svg.png" alt="KBANK" className="w-full h-full object-cover" />
+                </div>
                 <div>
                   <p className="text-xs text-gray-500">ธนาคารกสิกรไทย (KBANK)</p>
                   <p className="font-black text-lg text-gray-900 tracking-widest">004-8-15411-5</p>
@@ -66,10 +68,10 @@ export function Navbar() {
               </div>
               <div className="border-t border-green-200 pt-2">
                 <p className="text-xs text-gray-500">ชื่อบัญชี</p>
-                <p className="font-bold text-gray-900">จิราภัทร สุทัศน์</p>
+                <p className="font-bold text-gray-900">จิราภัทร สุทัศน์ ณ อยุธยา</p>
               </div>
             </div>
-            <p className="text-[10px] text-gray-400 mt-2 text-center">หากมีข้อสงสัยติดต่อ LINE: @villadd</p>
+            <p className="text-[10px] text-gray-400 mt-2 text-center">หากมีข้อสงสัยติดต่อ LINE: @baitongpoolvilla</p>
           </div>
         )}
       </div>
@@ -215,11 +217,13 @@ export function Navbar() {
               </div>
             )}
 
-            {/* Bank Account in Mobile Menu */}
             <div className="mt-2 bg-green-50 rounded-xl p-3 border border-green-200">
-              <p className="text-[10px] text-red-600 font-black mb-1">⚠️ ตรวจสอบบัญชีก่อนโอนทุกครั้ง!</p>
-              <p className="text-xs font-black text-gray-700">กสิกรไทย: <span className="text-green-700 tracking-widest">004-8-15411-5</span></p>
-              <p className="text-xs text-gray-600">ชื่อ: <span className="font-bold">จิราภัทร สุทัศน์</span></p>
+              <p className="text-[10px] text-red-600 font-black mb-2">⚠️ ตรวจสอบบัญชีก่อนโอนทุกครั้ง!</p>
+              <div className="flex items-center gap-2 mb-1">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Logo_Kasikorn_Bank.svg/1200px-Logo_Kasikorn_Bank.svg.png" alt="KBANK" className="w-6 h-6 rounded-full object-cover" />
+                <p className="text-xs font-black text-gray-700">กสิกรไทย: <span className="text-green-700 tracking-widest">004-8-15411-5</span></p>
+              </div>
+              <p className="text-xs text-gray-600">ชื่อ: <span className="font-bold">จิราภัทร สุทัศน์ ณ อยุธยา</span></p>
             </div>
 
             {/* Language toggle in mobile */}

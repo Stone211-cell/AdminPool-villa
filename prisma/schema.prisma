@@ -30,6 +30,8 @@ model User {
 model House {
   id          String   @id @default(cuid())
   hId         String   @unique @map("h_id") // รหัสบ้าน เช่น "2866"
+  name        String   @default("") // ชื่อบ้าน เช่น "Pool Villa A1 พัทยา"
+  description String   @default("") // คำอธิบายสั้น
   hZone       String   @default("pattaya") @map("h_zone")
   hBedroom    Int      @map("h_bedroom")
   hToilet     Int      @map("h_toilet")
@@ -51,6 +53,8 @@ model House {
   swimmingKid Boolean  @default(false) @map("swimming_kid")
   bath        Boolean  @default(false)
   category    String   @default("NORMAL") // PROMOTION | RECOMMENDED | NORMAL | OTHER
+  isPublished Boolean  @default(true) @map("is_published") // แสดงบน frontend ไหม
+  isActive    Boolean  @default(true) @map("is_active") // รับจองอยู่ไหม
   manualOverride Boolean @default(false) @map("manual_override") // ถ้า true → sync จะไม่ทับข้อมูลหลัก
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -64,7 +68,7 @@ model House {
   @@map("houses")
 }
 
-// รายละเอียดบ้าน (ดึงจากหน้า /houses/[id])
+// รายละเอียดบ้าน
 model HouseDetail {
   id              String   @id @default(cuid())
   houseId         String   @unique @map("house_id")
@@ -79,6 +83,11 @@ model HouseDetail {
   kitchen         String   @default("") @map("h_kitchen_ware")
   additionalCosts String   @default("") @map("h_additional_costs")
   moreDetail      String   @default("") @map("h_moredetail")
+  fullDescription String   @default("") @map("full_description") // คำอธิบายยาวสำหรับหน้าบ้าน
+  amenities       String[] @default([]) // สิ่งอำนวยความสะดวกอื่นๆ (tags)
+  nearbyPlaces    String   @default("") @map("nearby_places") // สถานที่ใกล้เคียง
+  rules           String   @default("") // กฎบ้าน/ข้อควรระวัง
+  mapUrl          String   @default("") @map("map_url") // Google Maps embed URL
   bedroomDetail   String   @default("") @map("h_bedroom_detail")
   alert           String   @default("") @map("h_alert")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -87,6 +96,7 @@ model HouseDetail {
 
   @@map("house_details")
 }
+
 
 // การจอง (วันที่ถูกจอง/ปิด)
 model Booking {

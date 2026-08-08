@@ -10,11 +10,11 @@ export default function AdminArticlesPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [articles, setArticles] = useState<any[]>([]);
-  
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  
+
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -22,12 +22,20 @@ export default function AdminArticlesPage() {
   const isAdmin = user?.publicMetadata?.isAdmin === true;
 
   useEffect(() => {
-    if (isLoaded && !isAdmin) {
+    if (!isLoaded) return;
+
+    if (!user) {
+      router.push("/sign-in");
+      return;
+    }
+
+    if (!isAdmin) {
+      toast.error("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
       router.push("/");
-    } else if (isAdmin) {
+    } else {
       fetchArticles();
     }
-  }, [isLoaded, isAdmin, router]);
+  }, [isLoaded, isAdmin, router, user]);
 
   const fetchArticles = async () => {
     try {
@@ -91,7 +99,7 @@ export default function AdminArticlesPage() {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-5xl mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200">
         <h1 className="text-3xl font-black mb-8 text-gray-900">จัดการบทความ (Admin)</h1>
-        
+
         <form onSubmit={handleSubmit} className="bg-purple-50/50 p-6 rounded-2xl mb-12 border border-purple-100 space-y-5">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-purple-900">{editingId ? "แก้ไขบทความ" : "เขียนบทความใหม่"}</h2>
