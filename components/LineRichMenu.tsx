@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function LineRichMenu() {
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-bounce-slow">
+    <div className="fixed bottom-[110px] lg:bottom-6 right-4 lg:right-6 z-50 animate-bounce-slow">
       <Link 
         href="https://line.me/R/ti/p/@baitongpoolvilla" 
         target="_blank"

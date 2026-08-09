@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         const userId = event.source.userId;
         const replyToken = event.replyToken;
         
-        const match = text.match(/ยืนยันการจอง\s+(BK-\d+)/);
+        const match = text.match(/(?:ยืนยันการจอง|จอง)\s*(BK-\d+)/);
         if (match) {
           const refCode = match[1];
           // Find pending web booking
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
               
               if (flexContent) {
                 try {
-                  await axios.post('https://api.line.me/v2/bot/message/push', {
-                    to: userId,
+                  await axios.post('https://api.line.me/v2/bot/message/reply', {
+                    replyToken: replyToken,
                     messages: [flexContent]
                   }, {
                     headers: {
@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
                   });
                 } catch (err: any) {
                   // Fallback to text message if flex message fails (for debugging)
-                  await axios.post('https://api.line.me/v2/bot/message/push', {
-                    to: userId,
+                  await axios.post('https://api.line.me/v2/bot/message/reply', {
+                    replyToken: replyToken,
                     messages: [{ type: 'text', text: `เกิดข้อผิดพลาดในการส่งการ์ดจอง: ${err.response?.data?.message || err.message}` }]
                   }, {
                     headers: {
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
             }
           }
         } else if (text.includes('ติดต่อ')) {
-          await axios.post('https://api.line.me/v2/bot/message/push', {
-            to: userId,
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken: replyToken,
             messages: [{
               type: 'text',
               text: "เพจ Facebook\nhttps://web.facebook.com/profile.php?id=61556499615942\n\nFacebook ส่วนตัว\nhttps://web.facebook.com/jirapat.sutudnaayutthaya/directory_personal_details?locale=th_TH"
@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
             }
           });
         } else if (text === 'โปรโมชั่น') {
-          await axios.post('https://api.line.me/v2/bot/message/push', {
-            to: userId,
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken: replyToken,
             messages: [{
               type: 'text',
               text: "กรุณาเลือกช่วงราคาโปรโมชั่นที่คุณสนใจค่ะ 👇",
@@ -136,8 +136,8 @@ export async function POST(req: NextRequest) {
                   previewImageUrl: `${appUrl}/promotion/${price}/${img}`
                 }));
                 
-                await axios.post('https://api.line.me/v2/bot/message/push', {
-                  to: userId,
+                await axios.post('https://api.line.me/v2/bot/message/reply', {
+                  replyToken: replyToken,
                   messages: messages
                 }, {
                   headers: {
@@ -154,8 +154,8 @@ export async function POST(req: NextRequest) {
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pool-villaptong.vercel.app';
           const imageUrl = `${appUrl}/images/qr-deposit.jpg`;
           
-          await axios.post('https://api.line.me/v2/bot/message/push', {
-            to: userId,
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken: replyToken,
             messages: [{
               type: 'image',
               originalContentUrl: imageUrl,

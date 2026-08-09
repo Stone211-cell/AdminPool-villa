@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.6.2",
+    "@gsap/react": "^2.1.2",
     "@line/liff": "^2.29.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^5.22.0",
@@ -24,6 +25,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.43.0",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.27.0",
     "next": "16.2.4",
     "pg": "^8.20.0",

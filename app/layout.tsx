@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 import { I18nProvider } from "@/components/I18nProvider";
 import { AosInit } from "@/components/AosInit";
 import { FloatingDuck } from "@/components/FloatingDuck";
