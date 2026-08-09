@@ -78,6 +78,17 @@ export async function POST(req: NextRequest) {
                 }
               }
             }
+          } else {
+            // กรณีหารหัสจองไม่เจอ
+            await axios.post('https://api.line.me/v2/bot/message/reply', {
+              replyToken: replyToken,
+              messages: [{ type: 'text', text: `❌ ไม่พบข้อมูลการจองรหัส ${refCode} ในระบบครับ\nกรุณากดทำรายการจองผ่านเว็บไซต์อีกครั้ง` }]
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+              }
+            });
           }
         } else if (text.includes('ติดต่อ')) {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
@@ -172,8 +183,11 @@ export async function POST(req: NextRequest) {
     }
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Webhook Error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error.response?.data || error.message 
+    }, { status: 500 });
   }
 }
