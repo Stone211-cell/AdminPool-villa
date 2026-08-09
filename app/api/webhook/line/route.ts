@@ -23,6 +23,16 @@ export async function POST(req: NextRequest) {
           });
           
           if (booking) {
+            // Upsert LineUser first to prevent foreign key constraint error
+            await prisma.lineUser.upsert({
+              where: { lineUserId: userId },
+              create: { 
+                lineUserId: userId,
+                displayName: "LINE User"
+              },
+              update: {}
+            });
+
             // Update lineUserId to actual user ID
             await prisma.lineBookingRequest.update({
               where: { id: booking.id },
