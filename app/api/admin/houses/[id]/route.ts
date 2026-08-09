@@ -33,7 +33,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const adminId = await requireAdmin();
     if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = await params;
+    const rawId = (await params).id;
+    const id = decodeURIComponent(rawId);
     const body = await req.json();
     const {
       name, description, hZone, hBedroom, hToilet, price, people,
@@ -126,7 +127,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
     return NextResponse.json(updated);
   } catch (err: any) {
-    console.error(err);
+    console.error("PATCH Error:", err);
     return NextResponse.json({ error: err.message || "Failed to update" }, { status: 500 });
   }
 }
@@ -136,17 +137,27 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   try {
     const adminId = await requireAdmin();
     if (!adminId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { id } = await params;
+    const rawId = (await params).id;
+    const id = decodeURIComponent(rawId);
 
     // Delete related records first
     await prisma.houseDetail.deleteMany({ where: { houseId: id } });
     await prisma.basePrice.deleteMany({ where: { houseId: id } });
     await prisma.holiday.deleteMany({ where: { houseId: id } });
     await prisma.booking.deleteMany({ where: { houseId: id } });
+    
+    // Also cleanup line booking requests just in case
+    try {
+      await prisma.lineBookingRequest.deleteMany({ where: { houseId: id } });
+    } catch (e) {
+      console.warn("Failed to delete lineBookingRequests:", e);
+    }
+
     await prisma.house.delete({ where: { hId: id } });
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error("DELETE Error:", err);
     return NextResponse.json({ error: err.message || "Failed to delete" }, { status: 500 });
   }
 }

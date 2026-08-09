@@ -107,18 +107,6 @@ export default function AdminDashboard() {
             </Link>
           ))}
         </div>
-
-        {/* Quick Info */}
-        <div className="mt-10 bg-amber-50 border border-amber-200 rounded-2xl p-5">
-          <h3 className="font-black text-amber-800 mb-2">📌 วิธีหา LINE User ID ของคุณแอล</h3>
-          <ol className="text-sm text-amber-700 space-y-1 list-decimal list-inside">
-            <li>เปิด LINE OA Manager → ไปที่ LINE Official Account ของคุณ</li>
-            <li>ให้คุณแอลส่งข้อความอะไรก็ได้เข้ามาใน LINE OA ของบ้านพัก</li>
-            <li>ไปดู Webhook Log หรือดูใน Messaging API → ใน event จะมีช่อง <strong>source.userId</strong></li>
-            <li>หรือง่ายกว่านั้น: ให้เพิ่มโค้ดใน webhook route เพื่อ log userId แล้วส่งข้อความทดสอบ</li>
-            <li>เมื่อได้ ID เช่น <code className="bg-amber-100 px-1 rounded text-xs">U1a2b3c4d5e6f...</code> ให้ใส่ใน <code className="bg-amber-100 px-1 rounded text-xs">.env</code> ตรง <code className="bg-amber-100 px-1 rounded text-xs">ADMIN_LINE_USER_ID=Uxxxxxx</code></li>
-          </ol>
-        </div>
       </div>
     </div>
   );

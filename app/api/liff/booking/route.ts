@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createBookingFlexMessage } from "@/lib/line/flex-message";
+import { pushLineToAdmin } from "@/lib/line/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,22 @@ export async function POST(req: NextRequest) {
     } else {
       console.warn("[liff/booking] LINE_CHANNEL_ACCESS_TOKEN not set");
     }
+
+    // Push notification to admin LINE
+    const refCode = "LIFF-" + booking.id.substring(booking.id.length - 6).toUpperCase();
+    await pushLineToAdmin(refCode, {
+      houseId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      name: firstName + " " + lastName,
+      phone,
+      email: "",
+      adult: guests || 1,
+      child: 0,
+      pet: 0,
+      totalPrice,
+      note: notes || ""
+    });
 
     return NextResponse.json({
       success: true,

@@ -30,13 +30,24 @@ export default function AdminHousesPage() {
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (hId: string, name: string) => {
-    if (!confirm(`ลบบ้าน "${name || hId}" ออกจากระบบ?\n⚠️ ข้อมูลทั้งหมดจะหายถาวร`)) return;
-    try {
-      await axios.delete(`/api/admin/houses/${hId}`);
-      toast.success("ลบบ้านสำเร็จ");
-      fetchHouses();
-    } catch { toast.error("ลบล้มเหลว"); }
+  const handleDelete = (hId: string, name: string) => {
+    toast(`ยืนยันการลบบ้าน "${name || hId}"?`, {
+      description: "⚠️ ข้อมูลทั้งหมดจะหายถาวร ไม่สามารถกู้คืนได้",
+      action: {
+        label: "ยืนยันลบทิ้ง",
+        onClick: async () => {
+          try {
+            await axios.delete(`/api/admin/houses/${encodeURIComponent(hId)}`);
+            toast.success("ลบบ้านสำเร็จ");
+            fetchHouses();
+          } catch (e: any) {
+            toast.error(e.response?.data?.error || "ลบล้มเหลว");
+          }
+        }
+      },
+      cancel: { label: "ยกเลิก", onClick: () => {} },
+      duration: 10000,
+    });
   };
 
   const togglePublish = async (hId: string, current: boolean) => {
