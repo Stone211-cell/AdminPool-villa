@@ -100,6 +100,19 @@ export async function POST(req: NextRequest) {
               }
             });
           }
+        } else if (text.toLowerCase() === 'myid') {
+          await axios.post('https://api.line.me/v2/bot/message/reply', {
+            replyToken: replyToken,
+            messages: [{
+              type: 'text',
+              text: `LINE User ID ของคุณคือ:\n${userId}`
+            }]
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+            }
+          });
         } else if (text.includes('ติดต่อ')) {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
             replyToken: replyToken,
