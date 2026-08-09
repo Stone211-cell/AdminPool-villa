@@ -101,18 +101,33 @@ export async function POST(req: NextRequest) {
             });
           }
         } else if (text.toLowerCase() === 'myid') {
-          await axios.post('https://api.line.me/v2/bot/message/reply', {
-            replyToken: replyToken,
-            messages: [{
-              type: 'text',
-              text: `LINE User ID ของคุณคือ:\n${userId}`
-            }]
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
-            }
-          });
+          try {
+            await axios.post('https://api.line.me/v2/bot/message/reply', {
+              replyToken: replyToken,
+              messages: [{
+                type: 'text',
+                text: `LINE User ID ของคุณคือ:\n${userId}`
+              }]
+            }, {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`
+              }
+            });
+            // Log success to DB
+            await prisma.lineUser.upsert({
+              where: { lineUserId: 'LOG-SUCCESS' },
+              create: { lineUserId: 'LOG-SUCCESS', firstName: userId, lastName: new Date().toISOString(), phone: '' },
+              update: { firstName: userId, lastName: new Date().toISOString() }
+            });
+          } catch (replyErr: any) {
+            // Log error to DB
+            await prisma.lineUser.upsert({
+              where: { lineUserId: 'LOG-ERROR' },
+              create: { lineUserId: 'LOG-ERROR', firstName: replyErr.message, lastName: JSON.stringify(replyErr.response?.data || {}).substring(0, 100), phone: '' },
+              update: { firstName: replyErr.message, lastName: JSON.stringify(replyErr.response?.data || {}).substring(0, 100) }
+            });
+          }
         } else if (text.includes('ติดต่อ')) {
           await axios.post('https://api.line.me/v2/bot/message/reply', {
             replyToken: replyToken,

@@ -5,7 +5,7 @@ async function test() {
     events: [
       {
         type: 'message',
-        message: { type: 'text', text: 'ยืนยันการจอง BK-96060' },
+        message: { type: 'text', text: 'myid' },
         source: { userId: 'U123456789' },
         replyToken: 'dummy-token'
       }
