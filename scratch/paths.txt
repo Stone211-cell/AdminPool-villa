@@ -1,7 +1,0 @@
-/account
-/account/affiliates
-/account/login
-/book/detail-payment
-/fileupload
-/organization/about-us
-/organization/sell-with-us
