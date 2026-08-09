@@ -55,6 +55,11 @@ export async function POST(req: NextRequest) {
             const nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             if (house) {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vmbrkqnwqvmonenqfwlc.supabase.co";
+              const imgUrl = house.imgName 
+                ? (house.imgName.startsWith('http') ? house.imgName : `${supabaseUrl}/storage/v1/object/public/pool-villa-images/${house.imgName}`)
+                : undefined;
+
               const flexContent = createBookingFlexMessage({
                 houseId: house.hId,
                 houseName: `บ้านพัก BT-${house.hId}`,
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
                 totalPrice: booking.totalPrice,
                 nights,
                 bookingId: booking.id,
-                pictureUrl: house.imgName || undefined
+                pictureUrl: imgUrl
               });
               
               if (flexContent) {
