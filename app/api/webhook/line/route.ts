@@ -56,9 +56,13 @@ export async function POST(req: NextRequest) {
             
             if (house) {
               const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://vmbrkqnwqvmonenqfwlc.supabase.co";
-              const imgUrl = house.imgName 
+              let imgUrl = house.imgName 
                 ? (house.imgName.startsWith('http') ? house.imgName : `${supabaseUrl}/storage/v1/object/public/pool-villa-images/${house.imgName}`)
                 : undefined;
+              
+              if (imgUrl && !imgUrl.toLowerCase().match(/\.(jpg|jpeg|png)$/)) {
+                imgUrl = undefined;
+              }
 
               const flexContent = createBookingFlexMessage({
                 houseId: house.hId,

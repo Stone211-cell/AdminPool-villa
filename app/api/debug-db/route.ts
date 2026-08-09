@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const bookings = await prisma.lineBookingRequest.findMany({
-    where: { lineUserId: "U5196d501e83f7b352d6343796473e3e8" }
+  const house = await prisma.house.findUnique({
+    where: { hId: '1093' }, // from previous booking
+    select: { imgName: true }
   });
   
-  return NextResponse.json({ bookings });
+  return NextResponse.json({ house });
 }
