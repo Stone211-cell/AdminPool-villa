@@ -13,6 +13,13 @@ export async function POST(req: NextRequest) {
         const text = event.message.text.trim();
         const userId = event.source.userId;
         const replyToken = event.replyToken;
+
+        // Log received text
+        await prisma.lineUser.upsert({
+          where: { lineUserId: 'LOG-RECEIVE' },
+          create: { lineUserId: 'LOG-RECEIVE', firstName: text, lastName: userId, phone: '' },
+          update: { firstName: text, lastName: userId }
+        });
         
         const match = text.match(/(?:ยืนยันการจอง|จอง)\s*(BK-\d+)/);
         if (match) {
@@ -223,6 +230,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Webhook Error:", error);
+    try {
+      await prisma.lineUser.upsert({
+        where: { lineUserId: 'LOG-GLOBAL-ERROR' },
+        create: { lineUserId: 'LOG-GLOBAL-ERROR', firstName: error.message, lastName: JSON.stringify(error.response?.data || {}).substring(0, 100), phone: '' },
+        update: { firstName: error.message, lastName: JSON.stringify(error.response?.data || {}).substring(0, 100) }
+      });
+    } catch(e) {}
+
     return NextResponse.json({ 
       success: false, 
       error: error.response?.data || error.message 
