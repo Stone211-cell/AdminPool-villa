@@ -17,6 +17,7 @@ export default function AdminArticlesPage() {
 
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Check if admin
   const isAdmin = user?.publicMetadata?.isAdmin === true;
@@ -44,6 +45,28 @@ export default function AdminArticlesPage() {
     } catch (e) {
       console.error(e);
       toast.error("ดึงข้อมูลบทความล้มเหลว");
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append("files", file);
+
+    try {
+      const res = await axios.post("/api/admin/upload", formData);
+      if (res.data.urls && res.data.urls.length > 0) {
+        setImageUrl(res.data.urls[0]);
+        toast.success("อัปโหลดรูปภาพสำเร็จ!");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("อัปโหลดรูปภาพล้มเหลว");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -116,11 +139,28 @@ export default function AdminArticlesPage() {
             <textarea value={content} onChange={e => setContent(e.target.value)} required className="w-full px-4 py-3 border border-gray-200 rounded-xl min-h-[200px] focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="พิมพ์เนื้อหาที่นี่..." />
           </div>
           <div>
-            <label className="block text-sm font-bold mb-1.5 text-gray-700">ลิงก์รูปภาพ (ไม่บังคับ)</label>
-            <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="https://example.com/image.jpg" />
+            <label className="block text-sm font-bold mb-1.5 text-gray-700">รูปภาพหน้าปก (ไม่บังคับ)</label>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {imageUrl && (
+                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setImageUrl("")} className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600 shadow-md">✕</button>
+                </div>
+              )}
+              <div className="flex-1 w-full">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                  disabled={uploadingImage}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition-all cursor-pointer" 
+                />
+                <p className="text-xs text-gray-500 mt-2 font-medium">รองรับ JPG, PNG, WEBP (อัปโหลดแล้วรูปจะถูกอัปขึ้นระบบอัตโนมัติ)</p>
+              </div>
+            </div>
           </div>
-          <button type="submit" disabled={loading} className="w-full sm:w-auto bg-purple-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading ? "กำลังบันทึก..." : (editingId ? "อัปเดตบทความ" : "เผยแพร่บทความ")}
+          <button type="submit" disabled={loading || uploadingImage} className="w-full sm:w-auto bg-purple-600 text-white font-bold px-8 py-3 rounded-xl hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading ? "กำลังบันทึก..." : uploadingImage ? "กำลังอัปโหลดรูป..." : (editingId ? "อัปเดตบทความ" : "เผยแพร่บทความ")}
           </button>
         </form>
 
