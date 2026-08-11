@@ -213,9 +213,9 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
     <>
       {/* Search Bar */}
       {(isDatePickerOpen || isGuestPickerOpen) && (
-        <div className="fixed inset-0 z-10" onClick={() => { setIsDatePickerOpen(false); setIsGuestPickerOpen(false); }}></div>
+        <div className="fixed inset-0 z-30" onClick={() => { setIsDatePickerOpen(false); setIsGuestPickerOpen(false); }}></div>
       )}
-      <div className="bg-white rounded-[2rem] shadow-xl p-2 md:p-3 w-full max-w-5xl z-20 flex flex-col md:flex-row items-center border border-pink-50 gap-2 relative mt-4 mx-auto" data-aos="fade-up">
+      <div className="bg-white rounded-[2rem] shadow-xl p-2 md:p-3 w-full max-w-5xl z-40 flex flex-col md:flex-row items-center border border-pink-50 gap-2 relative mt-4 mx-auto" data-aos="fade-up">
         
         <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100">
           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
