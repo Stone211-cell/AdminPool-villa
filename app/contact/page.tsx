@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { Phone } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
@@ -108,8 +109,8 @@ export default function ContactPage() {
             rel="noopener noreferrer"
             className="flex items-center gap-4 text-gray-600 font-semibold hover:text-[#00B900] transition-colors group"
           >
-            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-[#00B900] flex-shrink-0 group-hover:bg-[#00B900] group-hover:text-white transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z" /></svg>
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Phone className="w-5 h-5" />
             </div>
             <div>
               <p>เบอร์โทรศัพท์</p>
