@@ -62,9 +62,9 @@ export default function AdminArticlesPage() {
         setImageUrl(res.data.urls[0]);
         toast.success("อัปโหลดรูปภาพสำเร็จ!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("อัปโหลดรูปภาพล้มเหลว");
+      toast.error(`อัปโหลดรูปภาพล้มเหลว: ${err.response?.data?.error || err.message}`);
     } finally {
       setUploadingImage(false);
     }
