@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!house) return NextResponse.json({ error: "House not found" }, { status: 404 });
 
     const detail = house.detail;
-    const basePrice = house.basePrices[0];
+    const basePrice = house.basePrices;
     const bookings = house.bookings;
     const holidays = house.holidays;
 

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // คำนวณราคา (ใช้ BasePrice ถ้ามี, ไม่งั้นใช้ราคาหลัก × คืน)
-    const bp = house.basePrices[0] ?? null;
+    const bp = house.basePrices ?? null;
     const totalPrice = bp ? calcPrice(bp, checkInDate, checkOutDate) : house.price * nights;
 
     // บันทึก LineUser (upsert ข้อมูลล่าสุด)
