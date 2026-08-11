@@ -228,22 +228,24 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           />
         </div>
 
-        <div 
-           className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100 relative cursor-pointer"
-           onClick={() => { setIsDatePickerOpen(!isDatePickerOpen); setIsGuestPickerOpen(false); }}
-        >
-          <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          <span className="text-sm font-semibold text-gray-700 w-full text-left">
-            {date?.from ? (
-              date.to ? (
-                `${date.from.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${date.to.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        <div className="flex-1 w-full border-b md:border-b-0 md:border-r border-gray-100 relative">
+          <div 
+             className="flex items-center gap-3 px-4 py-2 cursor-pointer w-full"
+             onClick={() => { setIsDatePickerOpen(!isDatePickerOpen); setIsGuestPickerOpen(false); }}
+          >
+            <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span className="text-sm font-semibold text-gray-700 w-full text-left">
+              {date?.from ? (
+                date.to ? (
+                  `${date.from.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${date.to.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                ) : (
+                  `${date.from.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                )
               ) : (
-                `${date.from.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
-              )
-            ) : (
-              "เลือกวันเข้าพัก"
-            )}
-          </span>
+                "เลือกวันเข้าพัก"
+              )}
+            </span>
+          </div>
 
           {/* Date Picker Popup */}
           <div 
@@ -261,14 +263,16 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           </div>
         </div>
 
-        <div 
-           className="flex-1 flex items-center gap-3 px-4 py-2 w-full cursor-pointer rounded-xl transition-colors relative"
-           onClick={() => { setIsGuestPickerOpen(!isGuestPickerOpen); setIsDatePickerOpen(false); }}
-        >
-          <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-          <span className="text-sm font-semibold text-gray-700">
-            ผู้เข้าพัก {guests.adult + guests.child > 0 ? `(${guests.adult + guests.child} คน)` : ''}
-          </span>
+        <div className="flex-1 w-full relative">
+          <div 
+             className="flex items-center gap-3 px-4 py-2 cursor-pointer w-full transition-colors"
+             onClick={() => { setIsGuestPickerOpen(!isGuestPickerOpen); setIsDatePickerOpen(false); }}
+          >
+            <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <span className="text-sm font-semibold text-gray-700">
+              ผู้เข้าพัก {guests.adult + guests.child > 0 ? `(${guests.adult + guests.child} คน)` : ''}
+            </span>
+          </div>
 
           {/* Hover Popup for Guests */}
           <div 

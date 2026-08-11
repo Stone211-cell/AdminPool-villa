@@ -12,7 +12,7 @@ export default function ContactPage() {
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        
+
         <h1 className="text-4xl font-black text-gray-900 mb-2 border-b pb-4">ติดต่อเรา</h1>
         <p className="text-gray-500 mb-10">ยินดีต้อนรับทุกคำถามและการจอง — ติดต่อเราได้ตลอด 24 ชม.</p>
 
@@ -21,7 +21,7 @@ export default function ContactPage() {
           <div className="flex flex-col gap-6">
             <h2 className="text-2xl font-bold text-[#ff758f]">Baitong Poolvilla</h2>
             <p className="text-gray-600 -mt-4 font-semibold">จิราภัทร สุทัศน์ ณ อยุธยา</p>
-            
+
             {/* Address */}
             <a
               href="https://maps.app.goo.gl/UwV3tVGGWJjXKujJ7"
@@ -47,11 +47,11 @@ export default function ContactPage() {
               className="flex items-center gap-4 text-gray-600 font-semibold hover:text-blue-600 transition-colors group"
             >
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
               </div>
               <div>
-                <p>เพจ Facebook</p>
-                <p className="text-xs text-gray-400">Baitong Poolvilla</p>
+                <p>เพจ Facebook </p>
+                <p className="text-xs text-gray-400">บ้านพักพูลวิลล่าพัทยา สัตหีบราคาถูก By.Baitong Pool Villa</p>
               </div>
             </a>
 
@@ -63,7 +63,7 @@ export default function ContactPage() {
               className="flex items-center gap-4 text-gray-600 font-semibold hover:text-blue-600 transition-colors group"
             >
               <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 3a3 3 0 110 6 3 3 0 010-6zm0 14.2a7.2 7.2 0 01-6-3.22c.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08a7.2 7.2 0 01-6 3.22z"/></svg>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 3a3 3 0 110 6 3 3 0 010-6zm0 14.2a7.2 7.2 0 01-6-3.22c.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08a7.2 7.2 0 01-6 3.22z" /></svg>
               </div>
               <div>
                 <p>Facebook ส่วนตัว</p>
@@ -79,7 +79,7 @@ export default function ContactPage() {
               className="flex items-center gap-4 text-gray-600 font-semibold hover:text-[#00B900] transition-colors group"
             >
               <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-[#00B900] flex-shrink-0 group-hover:bg-[#00B900] group-hover:text-white transition-colors">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z"/></svg>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z" /></svg>
               </div>
               <div>
                 <p>LINE Official</p>
@@ -102,8 +102,24 @@ export default function ContactPage() {
             />
           </div>
         </div>
+        <div>
+          <a
+            href="tel:0935622211"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 text-gray-600 font-semibold hover:text-[#00B900] transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-[#00B900] flex-shrink-0 group-hover:bg-[#00B900] group-hover:text-white transition-colors">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.122.303.04.792.019 1.077l-.145.894c-.035.21-.163.805.706.438.869-.367 4.697-2.766 6.945-5.132 2.309-2.427 3.382-4.996 3.382-7.477z" /></svg>
+            </div>
+            <div>
+              <p>เบอร์โทรศัพท์</p>
+              <p className="text-xs text-gray-400">093-562-2211</p>
+            </div>
+          </a>
+        </div>
 
-      </main>
-    </div>
+
+      </main >
+    </div >
   );
 }
