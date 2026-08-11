@@ -39,7 +39,7 @@ export default function AdminHousesPage() {
           try {
             await axios.delete(`/api/admin/houses/${encodeURIComponent(hId)}`);
             toast.success("ลบบ้านสำเร็จ");
-            fetchHouses();
+            window.location.reload();
           } catch (e: any) {
             toast.error(e.response?.data?.error || "ลบล้มเหลว");
           }

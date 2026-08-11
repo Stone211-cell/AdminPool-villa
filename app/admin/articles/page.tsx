@@ -103,7 +103,7 @@ export default function AdminArticlesPage() {
     try {
       await axios.delete(`/api/articles/${id}`);
       toast.success("ลบบทความสำเร็จ!");
-      fetchArticles();
+      window.location.reload();
     } catch (e) {
       toast.error("เกิดข้อผิดพลาดในการลบ");
     }
