@@ -122,7 +122,18 @@ export default function AdminArticlesPage() {
   if (!isLoaded || !isAdmin) return <div className="p-8 text-center font-bold text-gray-500">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 relative">
+      {/* Loading Overlay */}
+      {deletingId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-3xl flex flex-col items-center shadow-2xl">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-6"></div>
+            <p className="text-xl font-black text-gray-900">กำลังลบข้อมูล...</p>
+            <p className="text-sm text-gray-500 mt-2">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200">
         <h1 className="text-3xl font-black mb-8 text-gray-900">จัดการบทความ (Admin)</h1>
 

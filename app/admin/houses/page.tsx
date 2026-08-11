@@ -69,6 +69,17 @@ export default function AdminHousesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Loading Overlay */}
+      {deletingId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white p-8 rounded-3xl flex flex-col items-center shadow-2xl">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mb-6"></div>
+            <p className="text-xl font-black text-gray-900">กำลังลบข้อมูล...</p>
+            <p className="text-sm text-gray-500 mt-2">กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
