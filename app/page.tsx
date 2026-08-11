@@ -6,6 +6,7 @@ import { ClientSearch } from "@/components/ClientSearch";
 import { ProfileSetupModal } from "@/components/ProfileSetupModal";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata = {
   title: "BAITONG POOLVILLA | บ้านพักพูลวิลล่า พัทยา สัตหีบ ราคาพิเศษ",
