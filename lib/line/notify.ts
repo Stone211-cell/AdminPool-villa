@@ -2,7 +2,6 @@ import axios from "axios";
 
 const ADMIN_LINE_USER_ID = process.env.ADMIN_LINE_USER_ID || "";
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || "";
-const LINE_NOTIFY_TOKEN = process.env.LINE_NOTIFY_TOKEN || "";
 
 export async function pushLineToAdmin(refCode: string, data: {
   houseId: string;
@@ -17,7 +16,7 @@ export async function pushLineToAdmin(refCode: string, data: {
   totalPrice: number;
   note: string;
 }) {
-  if (!ADMIN_LINE_USER_ID && !LINE_NOTIFY_TOKEN) return;
+  if (!ADMIN_LINE_USER_ID || !LINE_TOKEN) return;
   
   const checkInDate = new Date(data.checkIn).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
   const checkOutDate = new Date(data.checkOut).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
@@ -27,31 +26,28 @@ export async function pushLineToAdmin(refCode: string, data: {
   
   const message = `🏡 คำขอจองใหม่! (${refCode.startsWith("LIFF") ? "มือถือ/LINE" : "เว็บ"})\n━━━━━━━━━━━━━━━━━━\n📌 รหัส: ${refCode}\n🏠 บ้านพัก: BT-${data.houseId}\n\n👤 ลูกค้า: ${data.name}\n📞 โทร: ${data.phone}\n📧 อีเมล: ${data.email || "-"}\n\n📅 เช็คอิน: ${checkInDate}\n📅 เช็คเอาท์: ${checkOutDate}\n🌙 จำนวน: ${nights} คืน\n👥 ผู้ใหญ่ ${data.adult} เด็ก ${data.child} สัตว์เลี้ยง ${data.pet}\n\n💰 ราคารวม: ${data.totalPrice.toLocaleString()} บาท\n💵 มัดจำ 60%: ${deposit.toLocaleString()} บาท\n\n📝 หมายเหตุ: ${data.note || "-"}\n━━━━━━━━━━━━━━━━━━\n⚡ ติดต่อลูกค้ากลับด่วน!`;
 
-  // 1. Send via LINE Notify (Much easier for groups/other users)
-  if (LINE_NOTIFY_TOKEN) {
+  // Send via OA Bot (Supports multiple admins separated by comma)
+  const adminIds = ADMIN_LINE_USER_ID.split(",").map(id => id.trim()).filter(id => id.startsWith("U"));
+  
+  if (adminIds.length > 0 && LINE_TOKEN) {
     try {
-      const qs = new URLSearchParams({ message });
-      await axios.post("https://notify-api.line.me/api/notify", qs.toString(), {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Bearer ${LINE_NOTIFY_TOKEN}`,
-        },
-      });
+      if (adminIds.length === 1) {
+        // Push message for single user
+        await axios.post(
+          "https://api.line.me/v2/bot/message/push",
+          { to: adminIds[0], messages: [{ type: "text", text: message }] },
+          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${LINE_TOKEN}` } }
+        );
+      } else {
+        // Multicast message for multiple users
+        await axios.post(
+          "https://api.line.me/v2/bot/message/multicast",
+          { to: adminIds, messages: [{ type: "text", text: message }] },
+          { headers: { "Content-Type": "application/json", Authorization: `Bearer ${LINE_TOKEN}` } }
+        );
+      }
     } catch (err: any) {
-      console.error("Failed to send LINE Notify:", err.response?.data || err.message);
-    }
-  }
-
-  // 2. Send via OA Bot Push Message (Requires specific User ID)
-  if (ADMIN_LINE_USER_ID && LINE_TOKEN) {
-    try {
-      await axios.post(
-        "https://api.line.me/v2/bot/message/push",
-        { to: ADMIN_LINE_USER_ID, messages: [{ type: "text", text: message }] },
-        { headers: { "Content-Type": "application/json", Authorization: `Bearer ${LINE_TOKEN}` } }
-      );
-    } catch (err: any) {
-      console.error("Failed to push LINE to admin:", err.response?.data || err.message);
+      console.error("Failed to send LINE to admin:", err.response?.data || err.message);
     }
   }
 }
