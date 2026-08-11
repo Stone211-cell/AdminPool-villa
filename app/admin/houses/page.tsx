@@ -27,7 +27,7 @@ export default function AdminHousesPage() {
   const fetchHouses = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("/api/admin/houses");
+      const { data } = await axios.get(`/api/admin/houses?t=${Date.now()}`);
       setHouses(data);
     } catch { toast.error("ดึงข้อมูลบ้านล้มเหลว"); }
     finally { setLoading(false); }

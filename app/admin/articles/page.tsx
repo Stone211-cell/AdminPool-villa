@@ -41,7 +41,7 @@ export default function AdminArticlesPage() {
 
   const fetchArticles = async () => {
     try {
-      const { data } = await axios.get("/api/articles");
+      const { data } = await axios.get(`/api/articles?t=${Date.now()}`);
       setArticles(data);
     } catch (e) {
       console.error(e);

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function requireAdmin() {
   const { userId } = await auth();
   if (!userId) return null;
