@@ -11,7 +11,8 @@ export default function AdminHousesPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [houses, setHouses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const isAdmin = user?.publicMetadata?.isAdmin === true;
 
   useEffect(() => {
@@ -36,12 +37,14 @@ export default function AdminHousesPage() {
       action: {
         label: "ยืนยันลบทิ้ง",
         onClick: async () => {
+          setDeletingId(hId);
           try {
             await axios.delete(`/api/admin/houses/${encodeURIComponent(hId)}`);
             toast.success("ลบบ้านสำเร็จ");
             window.location.reload();
           } catch (e: any) {
             toast.error(e.response?.data?.error || "ลบล้มเหลว");
+            setDeletingId(null);
           }
         }
       },
@@ -175,9 +178,10 @@ export default function AdminHousesPage() {
                     </button>
                     <button
                       onClick={() => handleDelete(house.hId, house.name)}
-                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
+                      disabled={deletingId === house.hId}
+                      className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50"
                     >
-                      🗑️
+                      {deletingId === house.hId ? "⏳" : "🗑️"}
                     </button>
                   </div>
                 </div>

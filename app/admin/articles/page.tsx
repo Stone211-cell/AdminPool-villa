@@ -17,6 +17,7 @@ export default function AdminArticlesPage() {
 
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Check if admin
@@ -100,12 +101,14 @@ export default function AdminArticlesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบบทความนี้?")) return;
+    setDeletingId(id);
     try {
       await axios.delete(`/api/articles/${id}`);
       toast.success("ลบบทความสำเร็จ!");
       window.location.reload();
-    } catch (e) {
-      toast.error("เกิดข้อผิดพลาดในการลบ");
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "เกิดข้อผิดพลาดในการลบ");
+      setDeletingId(null);
     }
   };
 
@@ -179,7 +182,9 @@ export default function AdminArticlesPage() {
                     <p className="text-xs font-semibold text-gray-400">{new Date(a.createdAt).toLocaleDateString('th-TH')}</p>
                     <div className="flex gap-2">
                       <button onClick={() => handleEdit(a)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm transition-colors">แก้ไข</button>
-                      <button onClick={() => handleDelete(a.id)} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm transition-colors">ลบ</button>
+                      <button onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 text-sm transition-colors disabled:opacity-50">
+                        {deletingId === a.id ? "กำลังลบ..." : "ลบ"}
+                      </button>
                     </div>
                   </div>
                 </div>
