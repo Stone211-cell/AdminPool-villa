@@ -228,7 +228,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           />
         </div>
 
-        <div className="flex-1 w-full border-b md:border-b-0 md:border-r border-gray-100 relative">
+        <div className={`flex-1 w-full border-b md:border-b-0 md:border-r border-gray-100 relative ${isDatePickerOpen ? 'z-50' : 'z-20'}`}>
           <div 
              className="flex items-center gap-3 px-4 py-2 cursor-pointer w-full"
              onClick={() => { setIsDatePickerOpen(!isDatePickerOpen); setIsGuestPickerOpen(false); }}
@@ -263,7 +263,7 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           </div>
         </div>
 
-        <div className="flex-1 w-full relative">
+        <div className={`flex-1 w-full relative ${isGuestPickerOpen ? 'z-50' : 'z-20'}`}>
           <div 
              className="flex items-center gap-3 px-4 py-2 cursor-pointer w-full transition-colors"
              onClick={() => { setIsGuestPickerOpen(!isGuestPickerOpen); setIsDatePickerOpen(false); }}
