@@ -17,6 +17,8 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
   const [date, setDate] = useState<DateRange | undefined>();
   const [unavailableHouses, setUnavailableHouses] = useState<Set<string>>(new Set());
   const [isSearchingApi, setIsSearchingApi] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isGuestPickerOpen, setIsGuestPickerOpen] = useState(false);
 
   // Filter out houses without an image
   const validHouses = initialHouses.filter(house => house.imgName && house.imgName.trim() !== "");
@@ -210,6 +212,9 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
   return (
     <>
       {/* Search Bar */}
+      {(isDatePickerOpen || isGuestPickerOpen) && (
+        <div className="fixed inset-0 z-10" onClick={() => { setIsDatePickerOpen(false); setIsGuestPickerOpen(false); }}></div>
+      )}
       <div className="bg-white rounded-[2rem] shadow-xl p-2 md:p-3 w-full max-w-5xl z-20 flex flex-col md:flex-row items-center border border-pink-50 gap-2 relative mt-4 mx-auto" data-aos="fade-up">
         
         <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100">
@@ -223,9 +228,12 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           />
         </div>
 
-        <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100 relative group">
+        <div 
+           className="flex-1 flex items-center gap-3 px-4 py-2 w-full border-b md:border-b-0 md:border-r border-gray-100 relative cursor-pointer"
+           onClick={() => { setIsDatePickerOpen(!isDatePickerOpen); setIsGuestPickerOpen(false); }}
+        >
           <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          <span className="text-sm font-semibold text-gray-700 w-full text-left cursor-pointer">
+          <span className="text-sm font-semibold text-gray-700 w-full text-left">
             {date?.from ? (
               date.to ? (
                 `${date.from.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${date.to.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -238,7 +246,10 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           </span>
 
           {/* Date Picker Popup */}
-          <div className="absolute top-full left-0 mt-4 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100]">
+          <div 
+             className={`absolute top-full left-0 mt-4 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 transition-all duration-300 z-[100] ${isDatePickerOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+             onClick={(e) => e.stopPropagation()}
+          >
             <DayPicker
               mode="range"
               selected={date}
@@ -250,14 +261,20 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
           </div>
         </div>
 
-        <div className="flex-1 flex items-center gap-3 px-4 py-2 w-full cursor-pointer rounded-xl transition-colors relative group">
+        <div 
+           className="flex-1 flex items-center gap-3 px-4 py-2 w-full cursor-pointer rounded-xl transition-colors relative"
+           onClick={() => { setIsGuestPickerOpen(!isGuestPickerOpen); setIsDatePickerOpen(false); }}
+        >
           <svg className="w-5 h-5 text-[#ff758f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
           <span className="text-sm font-semibold text-gray-700">
             ผู้เข้าพัก {guests.adult + guests.child > 0 ? `(${guests.adult + guests.child} คน)` : ''}
           </span>
 
           {/* Hover Popup for Guests */}
-          <div className="absolute top-full right-0 mt-4 bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[100]">
+          <div 
+             className={`absolute top-full right-0 mt-4 bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 w-80 md:w-80 sm:w-[90vw] transition-all duration-300 z-[100] ${isGuestPickerOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+             onClick={(e) => e.stopPropagation()}
+          >
              {[
                { id: "adult", icon: "user", label: "ผู้ใหญ่", desc: "" },
                { id: "child", icon: "baby", label: "เด็ก", desc: "อายุ 0-12 ปี" },
@@ -276,9 +293,9 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
                      </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: Math.max(0, guests[item.id as keyof typeof guests] - 1) })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">-</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleGuestsChange({ ...guests, [item.id]: Math.max(0, guests[item.id as keyof typeof guests] - 1) }); }} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">-</button>
                     <span className="w-4 text-center font-bold text-gray-700">{guests[item.id as keyof typeof guests]}</span>
-                    <button onClick={() => handleGuestsChange({ ...guests, [item.id]: guests[item.id as keyof typeof guests] + 1 })} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">+</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleGuestsChange({ ...guests, [item.id]: guests[item.id as keyof typeof guests] + 1 }); }} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-[#ff758f] hover:bg-pink-50 font-bold">+</button>
                   </div>
                </div>
              ))}
@@ -308,6 +325,8 @@ export function ClientSearch({ initialHouses, articles = [] }: ClientSearchProps
             } else {
               setUnavailableHouses(new Set()); // reset if no dates
             }
+            setIsDatePickerOpen(false);
+            setIsGuestPickerOpen(false);
             document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
           }}
           className="bg-[#ff758f] hover:bg-[#ff5c77] text-white px-8 py-4 rounded-full font-bold transition-colors w-full md:w-auto mt-2 md:mt-0 flex items-center justify-center gap-2 shadow-lg shadow-pink-200 cursor-pointer disabled:bg-gray-400"

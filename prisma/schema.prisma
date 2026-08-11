@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
   output   = "../app/generated/prisma"
@@ -12,7 +9,6 @@ datasource db {
   directUrl = env("SUPABASE_DIRECT_URL")
 }
 
-// ผู้ใช้ (Profile)
 model User {
   id        String   @id @default(cuid())
   clerkId   String   @unique @map("clerk_id")
@@ -26,56 +22,52 @@ model User {
   @@map("users")
 }
 
-// ข้อมูลหลักของบ้านพูลวิลล่า
 model House {
-  id          String   @id @default(cuid())
-  hId         String   @unique @map("h_id") // รหัสบ้าน เช่น "2866"
-  name        String   @default("") // ชื่อบ้าน เช่น "Pool Villa A1 พัทยา"
-  description String   @default("") // คำอธิบายสั้น
-  hZone       String   @default("pattaya") @map("h_zone")
-  hBedroom    Int      @map("h_bedroom")
-  hToilet     Int      @map("h_toilet")
-  hFarsea     String   @default("") @map("h_farsea")
-  price       Int
-  people      Int
-  imgName     String   @default("") @map("img_name")
-  images      String[] @default([])
-  swim        String   @default("chlorine")
-  wifi        Boolean  @default(false)
-  grill       Boolean  @default(false)
-  pet         Boolean  @default(false)
-  karaoke     Boolean  @default(false)
-  jacuzzi     Boolean  @default(false)
-  snooker     Boolean  @default(false)
-  discotech   Boolean  @default(false)
-  slider      Boolean  @default(false)
-  billard     Boolean  @default(false)
-  swimmingKid Boolean  @default(false) @map("swimming_kid")
-  bath        Boolean  @default(false)
-  category    String   @default("NORMAL") // PROMOTION | RECOMMENDED | NORMAL | OTHER
-  isPublished Boolean  @default(true) @map("is_published") // แสดงบน frontend ไหม
-  isActive    Boolean  @default(true) @map("is_active") // รับจองอยู่ไหม
-  manualOverride Boolean @default(false) @map("manual_override") // ถ้า true → sync จะไม่ทับข้อมูลหลัก
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // รายละเอียดเพิ่มเติม (จากหน้า detail)
-  detail     HouseDetail?
-  bookings   Booking[]
-  holidays   Holiday[]
-  basePrices BasePrice[]
+  id             String       @id @default(cuid())
+  hId            String       @unique @map("h_id")
+  hZone          String       @default("pattaya") @map("h_zone")
+  hBedroom       Int          @map("h_bedroom")
+  hToilet        Int          @map("h_toilet")
+  hFarsea        String       @default("") @map("h_farsea")
+  price          Int
+  people         Int
+  imgName        String       @default("") @map("img_name")
+  swim           String       @default("chlorine")
+  wifi           Boolean      @default(false)
+  grill          Boolean      @default(false)
+  pet            Boolean      @default(false)
+  karaoke        Boolean      @default(false)
+  jacuzzi        Boolean      @default(false)
+  snooker        Boolean      @default(false)
+  discotech      Boolean      @default(false)
+  slider         Boolean      @default(false)
+  billard        Boolean      @default(false)
+  swimmingKid    Boolean      @default(false) @map("swimming_kid")
+  bath           Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  category       String       @default("NORMAL")
+  images         String[]     @default([])
+  manualOverride Boolean      @default(false) @map("manual_override")
+  description    String       @default("")
+  isActive       Boolean      @default(true) @map("is_active")
+  isPublished    Boolean      @default(true) @map("is_published")
+  name           String       @default("")
+  basePrices     BasePrice?
+  bookings       Booking[]
+  holidays       Holiday[]
+  detail         HouseDetail?
 
   @@map("houses")
 }
 
-// รายละเอียดบ้าน
 model HouseDetail {
   id              String   @id @default(cuid())
   houseId         String   @unique @map("house_id")
   checkin         String   @default("14:00") @map("h_time_checkin")
   checkout        String   @default("12:00") @map("h_time_checkout")
-  extra           Int      @default(0) // ค่าคนเสริม/คืน
-  insurance       Int      @default(0) // ค่าประกันความเสียหาย
+  extra           Int      @default(0)
+  insurance       Int      @default(0)
   peopleMax       Int      @default(0) @map("people_max")
   location        String   @default("")
   sea             String   @default("")
@@ -83,53 +75,46 @@ model HouseDetail {
   kitchen         String   @default("") @map("h_kitchen_ware")
   additionalCosts String   @default("") @map("h_additional_costs")
   moreDetail      String   @default("") @map("h_moredetail")
-  fullDescription String   @default("") @map("full_description") // คำอธิบายยาวสำหรับหน้าบ้าน
-  amenities       String[] @default([]) // สิ่งอำนวยความสะดวกอื่นๆ (tags)
-  nearbyPlaces    String   @default("") @map("nearby_places") // สถานที่ใกล้เคียง
-  rules           String   @default("") // กฎบ้าน/ข้อควรระวัง
-  mapUrl          String   @default("") @map("map_url") // Google Maps embed URL
   bedroomDetail   String   @default("") @map("h_bedroom_detail")
   alert           String   @default("") @map("h_alert")
   updatedAt       DateTime @updatedAt @map("updated_at")
-
-  house House @relation(fields: [houseId], references: [hId])
+  amenities       String[] @default([])
+  fullDescription String   @default("") @map("full_description")
+  mapUrl          String   @default("") @map("map_url")
+  nearbyPlaces    String   @default("") @map("nearby_places")
+  rules           String   @default("")
+  house           House    @relation(fields: [houseId], references: [hId])
 
   @@map("house_details")
 }
 
-
-// การจอง (วันที่ถูกจอง/ปิด)
 model Booking {
   id        String   @id @default(cuid())
   houseId   String   @map("house_id")
   checkIn   DateTime @map("book_checkin")
   checkOut  DateTime @map("book_checkout")
-  bookType  String   @default("guest") @map("book_type") // guest | owner | repair
+  bookType  String   @default("guest") @map("book_type")
   createdAt DateTime @default(now()) @map("created_at")
-
-  house House @relation(fields: [houseId], references: [hId])
+  house     House    @relation(fields: [houseId], references: [hId])
 
   @@map("bookings")
 }
 
-// วันหยุด/ราคาพิเศษ
 model Holiday {
   id        String   @id @default(cuid())
   houseId   String   @map("house_id")
   start     DateTime
   end       DateTime
-  type      String   @default("holiday") // holiday | hotpro
+  type      String   @default("holiday")
   price     Int      @default(0)
   people    Int      @default(0)
   alert     String   @default("")
   createdAt DateTime @default(now()) @map("created_at")
-
-  house House @relation(fields: [houseId], references: [hId])
+  house     House    @relation(fields: [houseId], references: [hId])
 
   @@map("holidays")
 }
 
-// บทความ / ข่าวสาร
 model Article {
   id        String   @id @default(cuid())
   title     String
@@ -143,7 +128,6 @@ model Article {
   @@map("articles")
 }
 
-// ราคาตามวัน
 model BasePrice {
   id       String @id @default(cuid())
   houseId  String @unique @map("house_id")
@@ -154,47 +138,42 @@ model BasePrice {
   priceThu Int    @default(0) @map("price_thu")
   priceFri Int    @default(0) @map("price_fri")
   priceSat Int    @default(0) @map("price_sat")
-
-  house House @relation(fields: [houseId], references: [hId])
+  house    House  @relation(fields: [houseId], references: [hId])
 
   @@map("base_prices")
 }
 
-// ข้อมูลลูกค้า LINE (จดจำจาก LIFF)
 model LineUser {
-  id          String   @id @default(cuid())
-  lineUserId  String   @unique @map("line_user_id")
-  displayName String   @default("") @map("display_name")
-  pictureUrl  String?  @map("picture_url")
-  phone       String   @default("")
-  firstName   String   @default("") @map("first_name")
-  lastName    String   @default("") @map("last_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  id              String               @id @default(cuid())
+  lineUserId      String               @unique @map("line_user_id")
+  displayName     String               @default("") @map("display_name")
+  pictureUrl      String?              @map("picture_url")
+  phone           String               @default("")
+  firstName       String               @default("") @map("first_name")
+  lastName        String               @default("") @map("last_name")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
   bookingRequests LineBookingRequest[]
 
   @@map("line_users")
 }
 
-// คำขอจองผ่าน LINE LIFF
 model LineBookingRequest {
-  id          String   @id @default(cuid())
-  lineUserId  String   @map("line_user_id")
-  houseId     String   @map("house_id")
-  checkIn     DateTime @map("check_in")
-  checkOut    DateTime @map("check_out")
-  guests      Int      @default(1)
-  totalPrice  Int      @default(0) @map("total_price")
-  phone       String   @default("")
-  firstName   String   @default("") @map("first_name")
-  lastName    String   @default("") @map("last_name")
-  notes       String   @default("")
-  status      String   @default("pending") // pending | confirmed | cancelled
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  lineUser LineUser @relation(fields: [lineUserId], references: [lineUserId])
+  id         String   @id @default(cuid())
+  lineUserId String   @map("line_user_id")
+  houseId    String   @map("house_id")
+  checkIn    DateTime @map("check_in")
+  checkOut   DateTime @map("check_out")
+  guests     Int      @default(1)
+  totalPrice Int      @default(0) @map("total_price")
+  phone      String   @default("")
+  firstName  String   @default("") @map("first_name")
+  lastName   String   @default("") @map("last_name")
+  notes      String   @default("")
+  status     String   @default("pending")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  lineUser   LineUser @relation(fields: [lineUserId], references: [lineUserId])
 
   @@map("line_booking_requests")
 }

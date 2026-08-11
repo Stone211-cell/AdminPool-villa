@@ -16,12 +16,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { sessionClaims } = await auth();
-    // Use type assertion since publicMetadata might not be typed
-    const metadata = sessionClaims?.metadata as any;
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     
-    if (metadata?.isAdmin !== true) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    
+    if (user.publicMetadata?.isAdmin !== true) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
